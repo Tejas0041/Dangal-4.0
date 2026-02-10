@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registration Page</title>
+    <style>
+      /* Some basic styling for demonstration purposes */
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0d0f09;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto;
+      }
+      .outline {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #headline {
+        color: #ffcc00;
+      }
+      #gameName {
+        text-align: center;
+      }
+      .registration-container {
+        background-color: #ffcc00; /* Yellow background */
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 80%;
+       /* margin: 0 auto; /* Center align the container */
+      }
+
+      .inputBox {
+        margin-bottom: 20px; /* Increase space between input boxes */
+      }
+
+      .inputBox input[type="text"] {
+        width: calc(100% - 20px); /* Full width input */
+        padding: 10px;
+        border: 1px solid #000000; /* Black border */
+        border-radius: 5px;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+
+        color: black; /* White text color */
+        box-sizing: border-box; /* Include padding in width calculation */
+      }
+
+      .btn-container {
+        text-align: center; /* Center align buttons */
+      }
+
+      .btn {
+        background-color: #000000; /* Black button color */
+        color: #ffffff; /* White button text color */
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 0 10px; /* Adjust margin */
+        display: inline-block;
+      }
+
+      .btn:hover {
+        transform: scale(1.1);
+        transition: all 0.5s ease;
+      }
+      @media only screen and (max-width: 600px) {
+        .registration-container {
+          padding: 20px;
+          margin: 10px;
+        }
+
+        .inputBox input[type="text"] {
+          width: 100%;
+          padding: 12px;
+        }
+
+        .btn {
+          margin: 10px 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outline">
+      <h1 id="headline">Registration Form</h1>
+      <form action="https://getform.io/f/1aMMw1aW" method="POST">
+        <div class="registration-container">
+          <h2 id="gameName"></h2>
+          <h4>RULES AND REGULATIONS</h4>
+          <ul id="rulesList"></ul>
+
+          <div class="inputBox field">
+            <input type="text" placeholder="JMCR Name" name="name" required />
+            <div class="line"></div>
+          </div>
+          <div class="inputBox field">
+            <input
+              type="text"
+              placeholder="JMCR Gsuite"
+              name="email"
+              id="emailid"
+              required
+            />
+            <div class="line"></div>
+          </div>
+          <div class="inputBox field">
+            <input
+              type="text"
+              placeholder="Contact Number"
+              name="contact"
+              required
+            />
+            <div class="line"></div>
+          </div>
+          <div class="inputBox field">
+            <input
+              type="text"
+              placeholder="Hall/Hostel Name"
+              name="hname"
+              required
+            />
+            <div class="line"></div>
+          </div>
+          <div class="inputBox field">
+            <input type="text" placeholder="Game" name="Game" required />
+            <div class="line"></div>
+          </div>
+
+          <!-- Add Player Fields -->
+          <div id="playerFields"></div>
+          <button type="button" class="btn" onclick="addPlayerField()">
+            Add Player
+          </button>
+
+          <input type="submit" value="send message" class="btn" id="change"/>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      // Function to get the value of a query parameter from the URL
+      const maxPlayers = {
+        tt: 5,
+        tog: 6,
+        kbddi: 12,
+      };
+
+      // Function to add player fields dynamically
+      let playerCount = 0;
+
+function addPlayerField() {
+  const playerFields = document.getElementById("playerFields");
+  playerCount++;
+
+  // Check if maximum players reached for the selected game
+  if (playerCount > maxPlayers[game]) {
+    alert(`Maximum players (${maxPlayers[game]}) reached for ${game.toUpperCase()}`);
+    return;
+  }
+
+  const playerInput = document.createElement("div");
+  playerInput.classList.add("inputBox");
+
+  const isCaptain = playerCount === 1;
+  const playerNameLabel = isCaptain ? "Captain's Name" : `Player ${playerCount} Name`;
+  const playerNamePlaceholder = isCaptain ? "Captain's Name" : `Player ${playerCount} Name`;
+  const gsuiteLabel = isCaptain ? "Captain's Gsuite" : `Player ${playerCount} Gsuite`;
+  const gsuitePlaceholder = isCaptain ? "Captain's Gsuite" : `Player ${playerCount} Gsuite`;
+
+  playerInput.innerHTML = `
+     <label for="playerName${playerCount}">${playerNameLabel}:</label>
+     <input type="text" id="playerName${playerCount}" placeholder="${playerNamePlaceholder}" name="player_name[]" required />
+     <label for="playerEmail${playerCount}">${gsuiteLabel}:</label>
+     <input type="text" id="playerEmail${playerCount}" placeholder="${gsuitePlaceholder}" name="player_email[]" required />
+  `;
+
+  playerFields.appendChild(playerInput);
+
+}
+
+      function getQueryVariable(variable) {
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i = 0; i < vars.length; i++) {
+          var pair = vars[i].split("=");
+          if (pair[0] === variable) {
+            return decodeURIComponent(pair[1]);
+          }
+        }
+        return null;
+      }
+
+      // Get the value of the 'game' parameter from the URL
+      var game = getQueryVariable("game");
+
+      // Display the game name and rules on the page
+      if (game !== null) {
+        const gameName = {
+          tt: "table tennis🎾",
+          tog: "tug of war💪",
+          kbddi: "kabaddi🔥",
+        };
+        document.getElementById("gameName").textContent =
+          gameName[game].toUpperCase();
+
+        var rulesList = document.getElementById("rulesList");
+        var rules = "";
+
+        // Based on the game, set the rules
+        switch (game.toLowerCase()) {
+          case "tt":
+            rules = `
+                         <li>Each hall / hostel should bring only up to 2 teams consisting of 5 members each.</li>
+                         <li>One player can play only in one team.</li>
+                         <li>Playing order will be Singles and Doubles alternatively (Singles, Doubles, Singles, Doubles, Singles).</li>
+                         <li>Every match will be a knockout.</li>
+                         <li>Each Player will play at most 2 matches representing the team.</li>
+                         <li>The decision of the referee will be final.</li>
+                         <li>Usual ITTF rules will be followed.</li>
+                         `;
+            break;
+          case "tog":
+            rules = `
+                         <li>Each Hall/ Hostel may have at most 2 teams consisting of 6 players each.</li>
+                         <li>One player can play in one team only.</li>
+                         <li>As soon as the referee blows the whistle, the teams can start pulling the rope.</li>
+                         <li>Every participant must play with bare feet.</li>
+                         <li>The team to pull the rope to their area wins.</li>
+                         <li>Touching the ground for a long period of time and lowering the elbow below the knee are considered as fouls and may lead to disqualification.</li>
+                         `;
+            break;
+          case "kbddi":
+            rules = `
+                         <li>Each hall/hostel should bring only up to 2 teams consisting of 7-12 members each.</li>
+                         <li>One player can play only in one team.</li>
+                         <li>There is only one re-entry chance for each team.</li>
+                         <li>Each match will be of 20 minutes, 10 minutes each half. The playoff matches will be of 30 minutes.</li>
+                         <li>Every match will be a knockout.</li>
+                         <li>Every participant must play with bare feet.</li>
+                         <li>The referee decision will be final and no arguments tolerated.</li>
+                         <li>Usual Pro-Kabaddi rules will be followed.</li>
+                         `;
+            break;
+          default:
+            rules = "No rules found for this game.";
+            break;
+        }
+
+        rulesList.innerHTML = rules;
+      } else {
+        document.getElementById("gameName").textContent = "No game specified";
+      }
+    </script>
+  </body>
+</html>
