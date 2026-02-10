@@ -24,7 +24,13 @@ router.get(
   '/google/callback',
   (req, res, next) => {
     passport.authenticate('google', { session: false }, (err, user, info) => {
+      console.log('=== OAuth Callback ===');
+      console.log('Error:', err);
+      console.log('User:', user ? user.email : 'No user');
+      console.log('Info:', info);
+      
       if (err) {
+        console.log('Auth error, redirecting with error');
         // Check if it's the JMCR_ONLY error
         if (err.message === 'JMCR_ONLY') {
           return res.redirect(`${process.env.CLIENT_URL}/register#jmcr_only`);
@@ -34,6 +40,7 @@ router.get(
       }
       
       if (!user) {
+        console.log('No user, redirecting with auth_failed');
         return res.redirect(`${process.env.CLIENT_URL}/register#auth_failed`);
       }
 
@@ -43,6 +50,8 @@ router.get(
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
+
+      console.log('Token generated:', token.substring(0, 20) + '...');
 
       // Set cookie (for same-domain requests)
       res.cookie('token', token, {
@@ -58,6 +67,7 @@ router.get(
         ? `${process.env.ADMIN_URL}?token=${token}`
         : `${process.env.CLIENT_URL}/register?token=${token}&auth=success`;
 
+      console.log('Redirecting to:', redirectUrl.substring(0, 100) + '...');
       res.redirect(redirectUrl);
     })(req, res, next);
   }
