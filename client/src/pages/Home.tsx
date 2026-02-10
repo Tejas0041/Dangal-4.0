@@ -647,7 +647,7 @@ export default function Home() {
                 { label: "Elite Events", count: "3" },
                 { label: "Years of Legacy", count: "4+" },
                 { label: "Participants", count: "100+" },
-                { label: "Dates", count: "16-18 FEB" },
+                { label: "Event Dates", count: "16-18 FEB" },
               ].map((stat, idx) => (
                 <motion.div 
                   key={idx}
@@ -921,69 +921,168 @@ export default function Home() {
             <p className="text-gray-400 mt-4 text-lg">Relive the epic battles and unforgettable moments</p>
           </div>
           
+          {/* Mobile View - 5 Images + View More Button */}
+          <div className="md:hidden">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Images at positions: 3,3 (index 10), 4,1 (index 12), 4,4 (index 15), 4,3 (index 14), 3,4 (index 11) */}
+              {[galleryImages[10], galleryImages[12], galleryImages[15], galleryImages[14], galleryImages[11]].map((src, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className={`relative overflow-hidden rounded-lg border-2 border-white/10 bg-black/20 backdrop-blur-sm ${idx === 4 ? 'col-span-2' : ''}`}
+                >
+                  <img 
+                    src={src} 
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-auto object-cover"
+                  />
+                </motion.div>
+              ))}
+            </div>
+            
+            {/* View More Button */}
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              onClick={() => {
+                const gallerySection = document.getElementById('mobile-gallery-modal');
+                if (gallerySection) {
+                  gallerySection.classList.remove('hidden');
+                  document.body.style.overflow = 'hidden';
+                }
+              }}
+              className="w-full py-4 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold rounded-lg hover:shadow-lg hover:shadow-primary/50 transition-all duration-300"
+            >
+              View More
+            </motion.button>
+          </div>
+
+          {/* Desktop View - Full Gallery */}
+          <div className="hidden md:block">
+            <LightGallery
+              speed={500}
+              plugins={[lgZoom, lgThumbnail]}
+              mode="lg-slide-skew-only"
+              thumbnail={true}
+              animateThumb={true}
+              zoomFromOrigin={true}
+              allowMediaOverlap={true}
+              toggleThumb={true}
+              download={false}
+              swipeThreshold={50}
+              enableSwipe={true}
+              enableDrag={true}
+              preload={2}
+              elementClassNames="masonry-gallery"
+              selector=".gallery-item"
+              subHtmlSelectorRelative={false}
+            >
+              <Masonry
+                breakpointCols={{
+                  default: 4,
+                  1100: 3,
+                  700: 2,
+                }}
+                className="masonry-grid"
+                columnClassName="masonry-grid-column"
+              >
+                {galleryImages.map((src, idx) => (
+                  <motion.a
+                    key={idx}
+                    href={src}
+                    data-sub-html=""
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ delay: idx * 0.03, duration: 0.4 }}
+                    className="gallery-item group relative block overflow-hidden rounded-lg border-2 border-white/10 bg-black/20 backdrop-blur-sm cursor-pointer mb-4 will-change-transform"
+                  >
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-10">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    </div>
+                    
+                    {/* Corner Accents - Top Left */}
+                    <div className="absolute top-0 left-0 w-0 h-0 border-t-[3px] border-l-[3px] border-primary opacity-0 group-hover:opacity-100 group-hover:w-12 group-hover:h-12 transition-all duration-300 z-30" />
+                    
+                    {/* Corner Accents - Bottom Right */}
+                    <div className="absolute bottom-0 right-0 w-0 h-0 border-b-[3px] border-r-[3px] border-primary opacity-0 group-hover:opacity-100 group-hover:w-12 group-hover:h-12 transition-all duration-300 z-30" />
+                    
+                    {/* Image */}
+                    <img 
+                      src={src} 
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-auto object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+                    />
+                  </motion.a>
+                ))}
+              </Masonry>
+            </LightGallery>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile Gallery Modal */}
+      <div id="mobile-gallery-modal" className="hidden fixed inset-0 bg-black z-[9999] overflow-y-auto">
+        <div className="min-h-screen p-4">
+          {/* Close Button */}
+          <button
+            onClick={() => {
+              const gallerySection = document.getElementById('mobile-gallery-modal');
+              if (gallerySection) {
+                gallerySection.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+              }
+            }}
+            className="fixed top-4 right-4 z-[10000] w-12 h-12 bg-primary/20 backdrop-blur-md border border-primary rounded-full flex items-center justify-center hover:bg-primary/30 transition-all"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          {/* Gallery Title */}
+          <div className="text-center mb-8 pt-16">
+            <h2 className="text-3xl font-bold text-white">DANGAL <span className="text-primary">GALLERY</span></h2>
+          </div>
+
+          {/* All Images */}
           <LightGallery
             speed={500}
             plugins={[lgZoom, lgThumbnail]}
             mode="lg-slide-skew-only"
             thumbnail={true}
-            animateThumb={true}
-            zoomFromOrigin={true}
-            allowMediaOverlap={true}
-            toggleThumb={true}
             download={false}
-            swipeThreshold={50}
-            enableSwipe={true}
-            enableDrag={true}
-            preload={2}
-            elementClassNames="masonry-gallery"
-            selector=".gallery-item"
-            subHtmlSelectorRelative={false}
+            elementClassNames="mobile-gallery"
+            selector=".mobile-gallery-item"
           >
-            <Masonry
-              breakpointCols={{
-                default: 4,
-                1100: 3,
-                700: 2,
-                500: 1
-              }}
-              className="masonry-grid"
-              columnClassName="masonry-grid-column"
-            >
+            <div className="grid grid-cols-2 gap-4">
               {galleryImages.map((src, idx) => (
-                <motion.a
+                <a
                   key={idx}
                   href={src}
                   data-sub-html=""
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ delay: idx * 0.03, duration: 0.4 }}
-                  className="gallery-item group relative block overflow-hidden rounded-lg border-2 border-white/10 bg-black/20 backdrop-blur-sm cursor-pointer mb-4 will-change-transform"
+                  className="mobile-gallery-item relative block overflow-hidden rounded-lg border-2 border-white/10 bg-black/20"
                 >
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-10">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                  </div>
-                  
-                  {/* Corner Accents - Top Left */}
-                  <div className="absolute top-0 left-0 w-0 h-0 border-t-[3px] border-l-[3px] border-primary opacity-0 group-hover:opacity-100 group-hover:w-12 group-hover:h-12 transition-all duration-300 z-30" />
-                  
-                  {/* Corner Accents - Bottom Right */}
-                  <div className="absolute bottom-0 right-0 w-0 h-0 border-b-[3px] border-r-[3px] border-primary opacity-0 group-hover:opacity-100 group-hover:w-12 group-hover:h-12 transition-all duration-300 z-30" />
-                  
-                  {/* Image */}
                   <img 
                     src={src} 
                     alt=""
                     loading="lazy"
-                    className="w-full h-auto object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+                    className="w-full h-auto object-cover"
                   />
-                </motion.a>
+                </a>
               ))}
-            </Masonry>
+            </div>
           </LightGallery>
         </div>
-      </section>
+      </div>
 
       {/* --- PAST WINNERS SECTION --- */}
 <section id="winners" className="py-12 md:py-16 relative">
@@ -1114,19 +1213,21 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
-              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl"
+              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl flex flex-col h-full"
             >
               <div className="w-20 h-20 md:w-24 md:h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <User size={40} className="text-primary md:w-12 md:h-12" />
               </div>
               <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-display">VEDANT DHANRAJ BAGADE</h3>
               <p className="text-primary font-semibold mb-6 text-base md:text-lg">Event Coordinator</p>
-              <div className="space-y-3 text-white/70 text-sm md:text-base">
-                <p className="flex items-center justify-center gap-2">
-                  <Phone size={18} className="text-primary" />
-                  <span>+91 84212 01582</span>
-                </p>
-              </div>
+              <div className="flex-grow"></div>
+              <a
+                href="tel:+918421201582"
+                className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold rounded-full hover:shadow-lg hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
+              >
+                <Phone size={20} />
+                <span className="text-base md:text-lg">+91 84212 01582</span>
+              </a>
             </motion.div>
 
             {/* Coordinator 2 */}
@@ -1135,19 +1236,21 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
-              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl"
+              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl flex flex-col h-full"
             >
               <div className="w-20 h-20 md:w-24 md:h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <User size={40} className="text-primary md:w-12 md:h-12" />
               </div>
               <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-display">MANCHU VENKATA SAI SAKETH</h3>
               <p className="text-primary font-semibold mb-6 text-base md:text-lg">Event Coordinator</p>
-              <div className="space-y-3 text-white/70 text-sm md:text-base">
-                <p className="flex items-center justify-center gap-2">
-                  <Phone size={18} className="text-primary" />
-                  <span>+91 93814 57448</span>
-                </p>
-              </div>
+              <div className="flex-grow"></div>
+              <a
+                href="tel:+919381457448"
+                className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold rounded-full hover:shadow-lg hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
+              >
+                <Phone size={20} />
+                <span className="text-base md:text-lg">+91 93814 57448</span>
+              </a>
             </motion.div>
 
             {/* Coordinator 3 */}
@@ -1156,19 +1259,21 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.5 }}
-              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl"
+              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl flex flex-col h-full"
             >
               <div className="w-20 h-20 md:w-24 md:h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <User size={40} className="text-primary md:w-12 md:h-12" />
               </div>
               <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-display">PRATIK GANPAT KADAM</h3>
               <p className="text-primary font-semibold mb-6 text-base md:text-lg">Event Coordinator</p>
-              <div className="space-y-3 text-white/70 text-sm md:text-base">
-                <p className="flex items-center justify-center gap-2">
-                  <Phone size={18} className="text-primary" />
-                  <span>+91 74360 48007</span>
-                </p>
-              </div>
+              <div className="flex-grow"></div>
+              <a
+                href="tel:+917436048007"
+                className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold rounded-full hover:shadow-lg hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
+              >
+                <Phone size={20} />
+                <span className="text-base md:text-lg">+91 74360 48007</span>
+              </a>
             </motion.div>
           </div>
         </div>
