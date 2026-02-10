@@ -469,7 +469,7 @@ export default function Register() {
                 <div className="space-y-8 text-center py-8">
                   <div className="space-y-4">
                     <p className="text-white text-lg font-semibold">
-                      Only IIEST students can register for events
+                      Only JMCR of respective hall / hostel can register for events
                     </p>
                     <p className="text-gray-400 text-sm">
                       (Use G Suite ID only)
