@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Trophy, ChevronLeft, ChevronRight, User, Phone, Mail } from "lucide-react";
+import { ArrowRight, Trophy, ChevronLeft, ChevronRight, User, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import lionLogo from "@assets/image_1770666048367.webp";
 import { Navbar } from "@/components/Navbar";
@@ -647,7 +647,7 @@ export default function Home() {
                 { label: "Elite Events", count: "3" },
                 { label: "Years of Legacy", count: "4+" },
                 { label: "Participants", count: "100+" },
-                { label: "Prizes", count: "₹5K+" },
+                { label: "Dates", count: "16-18 FEB" },
               ].map((stat, idx) => (
                 <motion.div 
                   key={idx}
@@ -1107,11 +1107,11 @@ export default function Home() {
           </div>
 
           {/* Coordinator Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Coordinator 1 */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
               className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl"
@@ -1119,24 +1119,20 @@ export default function Home() {
               <div className="w-20 h-20 md:w-24 md:h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <User size={40} className="text-primary md:w-12 md:h-12" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 font-display">COORDINATOR NAME</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-display">VEDANT DHANRAJ BAGADE</h3>
               <p className="text-primary font-semibold mb-6 text-base md:text-lg">Event Coordinator</p>
               <div className="space-y-3 text-white/70 text-sm md:text-base">
                 <p className="flex items-center justify-center gap-2">
                   <Phone size={18} className="text-primary" />
-                  <span>+91 XXXXX XXXXX</span>
-                </p>
-                <p className="flex items-center justify-center gap-2 break-all">
-                  <Mail size={18} className="text-primary flex-shrink-0" />
-                  <span className="text-sm">coordinator@gmail.com</span>
+                  <span>+91 84212 01582</span>
                 </p>
               </div>
             </motion.div>
 
             {/* Coordinator 2 */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
               className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl"
@@ -1144,16 +1140,33 @@ export default function Home() {
               <div className="w-20 h-20 md:w-24 md:h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <User size={40} className="text-primary md:w-12 md:h-12" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 font-display">COORDINATOR NAME</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-display">MANCHU VENKATA SAI SAKETH</h3>
               <p className="text-primary font-semibold mb-6 text-base md:text-lg">Event Coordinator</p>
               <div className="space-y-3 text-white/70 text-sm md:text-base">
                 <p className="flex items-center justify-center gap-2">
                   <Phone size={18} className="text-primary" />
-                  <span>+91 XXXXX XXXXX</span>
+                  <span>+91 93814 57448</span>
                 </p>
-                <p className="flex items-center justify-center gap-2 break-all">
-                  <Mail size={18} className="text-primary flex-shrink-0" />
-                  <span className="text-sm">coordinator@gmail.com</span>
+              </div>
+            </motion.div>
+
+            {/* Coordinator 3 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+              className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-10 text-center hover:border-primary/50 transition-all duration-300 shadow-xl"
+            >
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <User size={40} className="text-primary md:w-12 md:h-12" />
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-display">PRATIK GANPAT KADAM</h3>
+              <p className="text-primary font-semibold mb-6 text-base md:text-lg">Event Coordinator</p>
+              <div className="space-y-3 text-white/70 text-sm md:text-base">
+                <p className="flex items-center justify-center gap-2">
+                  <Phone size={18} className="text-primary" />
+                  <span>+91 74360 48007</span>
                 </p>
               </div>
             </motion.div>
