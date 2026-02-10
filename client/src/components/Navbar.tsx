@@ -58,13 +58,13 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-[10000] transition-all duration-500 ${
           isScrolled 
             ? "bg-black/60 backdrop-blur-xl border-b border-white/5 py-3" 
             : "bg-transparent py-6"
         }`}
       >
-      <div className="container mx-auto px-6 flex items-center justify-between">
+      <div className="container mx-auto px-6 flex items-center justify-between relative">
         {/* Logo Area */}
         <Link to="/" className="flex items-center gap-3 group cursor-pointer relative">
           <div className="relative">
@@ -252,7 +252,29 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Glowing Yellow Line with Glare Animation - Only when scrolled */}
+      {isScrolled && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent overflow-hidden">
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-75"
+            animate={{
+              x: ['-200%', '200%'],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            style={{
+              width: '50%',
+              filter: 'blur(8px)',
+            }}
+          />
+        </div>
+      )}
+    </nav>
+
+      {/* Mobile Menu - OUTSIDE nav element */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
@@ -260,7 +282,7 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[-1]"
+              className="fixed inset-0 bg-black z-[10001]"
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
@@ -268,7 +290,7 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-[80%] bg-zinc-950 border-l border-white/10 p-10 flex flex-col z-50 shadow-2xl"
+              className="fixed top-0 right-0 bottom-0 w-[80%] bg-black border-l border-white/10 p-10 flex flex-col z-[10002] shadow-2xl"
             >
               <div className="flex justify-between items-center mb-12">
                 <span className="text-xl font-bold font-display tracking-widest text-primary">MENU</span>
@@ -356,7 +378,6 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
           </>
         )}
       </AnimatePresence>
-    </nav>
 
       {/* Logout Confirmation Modal - Outside nav for proper centering */}
       <AnimatePresence>
