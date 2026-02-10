@@ -38,6 +38,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
+    // Check if token is in URL (from OAuth callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token');
+    
+    if (tokenFromUrl) {
+      // Store token in localStorage
+      localStorage.setItem('token', tokenFromUrl);
+      // Remove token from URL
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    }
+    
     checkAuth();
   }, []);
 
@@ -47,6 +58,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(response.data.user);
     } catch (error) {
       setUser(null);
+      // Clear invalid token
+      localStorage.removeItem('token');
     } finally {
       setLoading(false);
     }
@@ -59,9 +72,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       await api.post('/api/auth/logout');
+      localStorage.removeItem('token');
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
+      localStorage.removeItem('token');
+      setUser(null);
     }
   };
 

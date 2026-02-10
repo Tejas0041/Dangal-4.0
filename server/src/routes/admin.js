@@ -53,6 +53,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       message: 'Login successful',
+      token: token, // Return token for localStorage
       admin: {
         id: admin._id,
         username: admin.username,

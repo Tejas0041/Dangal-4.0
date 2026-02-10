@@ -18,17 +18,31 @@ export const AuthProvider = ({ children }) => {
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
+    // Check if token is in URL (from OAuth callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token');
+    
+    if (tokenFromUrl) {
+      // Store token in localStorage
+      localStorage.setItem('adminToken', tokenFromUrl);
+      // Remove token from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
+      const token = localStorage.getItem('adminToken');
       const response = await axios.get(`${API_URL}/api/admin/me`, {
         withCredentials: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       setAdmin(response.data.admin);
     } catch (error) {
       setAdmin(null);
+      localStorage.removeItem('adminToken');
     } finally {
       setLoading(false);
     }
@@ -41,6 +55,10 @@ export const AuthProvider = ({ children }) => {
         { username, password },
         { withCredentials: true }
       );
+      // Store token if returned
+      if (response.data.token) {
+        localStorage.setItem('adminToken', response.data.token);
+      }
       setAdmin(response.data.admin);
       return { success: true };
     } catch (error) {
@@ -53,21 +71,30 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      const token = localStorage.getItem('adminToken');
       await axios.post(`${API_URL}/api/admin/logout`, {}, {
         withCredentials: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      localStorage.removeItem('adminToken');
       setAdmin(null);
     } catch (error) {
       console.error('Logout error:', error);
+      localStorage.removeItem('adminToken');
+      setAdmin(null);
     }
   };
 
   const changePassword = async (currentPassword, newPassword) => {
     try {
+      const token = localStorage.getItem('adminToken');
       const response = await axios.post(
         `${API_URL}/api/admin/change-password`,
         { currentPassword, newPassword },
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
       );
       return { success: true, message: response.data.message };
     } catch (error) {

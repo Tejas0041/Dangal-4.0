@@ -44,7 +44,7 @@ router.get(
         { expiresIn: '7d' }
       );
 
-      // Set cookie
+      // Set cookie (for same-domain requests)
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -53,10 +53,10 @@ router.get(
         domain: process.env.NODE_ENV === 'production' ? '.dangal2k26.online' : undefined,
       });
 
-      // Redirect based on role
+      // Redirect based on role with token in URL (for cross-domain)
       const redirectUrl = user.role === 'admin'
-        ? process.env.ADMIN_URL
-        : `${process.env.CLIENT_URL}/register#auth_success`;
+        ? `${process.env.ADMIN_URL}?token=${token}`
+        : `${process.env.CLIENT_URL}/register?token=${token}#auth_success`;
 
       res.redirect(redirectUrl);
     })(req, res, next);
