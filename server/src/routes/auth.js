@@ -50,6 +50,7 @@ router.get(
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: process.env.NODE_ENV === 'production' ? '.dangal2k26.online' : undefined,
       });
 
       // Redirect based on role
@@ -81,7 +82,12 @@ router.get('/me', authenticate, (req, res) => {
 // @desc    Logout user
 // @access  Private
 router.post('/logout', authenticate, (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? '.dangal2k26.online' : undefined,
+  });
   res.json({ message: 'Logged out successfully' });
 });
 

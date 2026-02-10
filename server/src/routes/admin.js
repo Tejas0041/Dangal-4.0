@@ -48,6 +48,7 @@ router.post('/login', async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      domain: process.env.NODE_ENV === 'production' ? '.dangal2k26.online' : undefined,
     });
 
     res.json({
@@ -116,7 +117,12 @@ router.post('/change-password', authenticateAdmin, async (req, res) => {
 // @desc    Logout admin
 // @access  Private (Admin)
 router.post('/logout', authenticateAdmin, (req, res) => {
-  res.clearCookie('adminToken');
+  res.clearCookie('adminToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? '.dangal2k26.online' : undefined,
+  });
   res.json({ message: 'Logged out successfully' });
 });
 
