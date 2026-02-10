@@ -78,12 +78,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       await api.post('/api/auth/logout');
-      localStorage.removeItem('token');
-      setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      // Always clear token and state, even if API call fails
       localStorage.removeItem('token');
       setUser(null);
+      window.location.href = '/';
     }
   };
 

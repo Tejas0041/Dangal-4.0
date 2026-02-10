@@ -56,7 +56,7 @@ router.get(
       // Redirect based on role with token in URL (for cross-domain)
       const redirectUrl = user.role === 'admin'
         ? `${process.env.ADMIN_URL}?token=${token}`
-        : `${process.env.CLIENT_URL}/register?token=${token}#auth_success`;
+        : `${process.env.CLIENT_URL}/register?token=${token}&auth=success`;
 
       res.redirect(redirectUrl);
     })(req, res, next);

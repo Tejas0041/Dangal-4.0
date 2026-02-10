@@ -76,12 +76,13 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true,
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      localStorage.removeItem('adminToken');
-      setAdmin(null);
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      // Always clear token and redirect, even if API call fails
       localStorage.removeItem('adminToken');
       setAdmin(null);
+      window.location.href = '/login';
     }
   };
 
