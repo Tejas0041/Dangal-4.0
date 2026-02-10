@@ -43,10 +43,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const tokenFromUrl = urlParams.get('token');
     
     if (tokenFromUrl) {
+      console.log('Token found in URL, storing in localStorage');
       // Store token in localStorage
       localStorage.setItem('token', tokenFromUrl);
-      // Remove token from URL
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      // Remove token from URL for security
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
     }
     
     checkAuth();
@@ -54,9 +56,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const checkAuth = async () => {
     try {
+      const token = localStorage.getItem('token');
+      console.log('Checking auth, token exists:', !!token);
       const response = await api.get('/api/auth/me');
+      console.log('Auth successful:', response.data.user);
       setUser(response.data.user);
     } catch (error) {
+      console.error('Auth check failed:', error);
       setUser(null);
       // Clear invalid token
       localStorage.removeItem('token');
