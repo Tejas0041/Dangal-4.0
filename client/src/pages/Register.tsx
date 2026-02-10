@@ -99,7 +99,7 @@ export default function Register() {
     if (hash === 'jmcr_only') {
       toast({
         title: "Access Denied",
-        description: "Only JMCRs (Joint Mess Council Representatives) can register teams. Please contact your hall's JMCR for registration.",
+        description: "Only JMCRs can register teams. Please contact your hall's JMCR for registration.",
         variant: "destructive",
         duration: 8000,
       });
