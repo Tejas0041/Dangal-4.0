@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
+import Matches from "@/pages/Matches";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/matches" element={<Matches />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>

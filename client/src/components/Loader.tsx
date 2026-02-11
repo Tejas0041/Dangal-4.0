@@ -1,12 +1,20 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 export function Loader() {
   // Start with true to prevent flash of content
   const [showLoader, setShowLoader] = useState(true);
   const [gifLoaded, setGifLoaded] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
+    // Never show loader on Matches page
+    if (location.pathname === '/matches') {
+      setShowLoader(false);
+      return;
+    }
+
     // Check if this is a navigation (not a page load/reload)
     const perfEntries = window.performance.getEntriesByType('navigation');
     const isNavigation = perfEntries.length > 0 && 
@@ -55,7 +63,7 @@ export function Loader() {
     }, 5000);
 
     return () => clearTimeout(fallbackTimer);
-  }, []);
+  }, [location.pathname]);
 
   if (!showLoader) return null;
 

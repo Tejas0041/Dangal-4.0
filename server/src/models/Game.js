@@ -14,6 +14,10 @@ const gameSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  icon: {
+    type: String, // 64x64px icon URL
+    default: ''
+  },
   rulebook: {
     type: String, // PDF URL
     required: true

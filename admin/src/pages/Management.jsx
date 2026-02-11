@@ -22,6 +22,7 @@ const Management = () => {
     name: '',
     description: '',
     image: '',
+    icon: '',
     rulebook: '',
     registrationAmount: '',
     minPlayersPerTeam: '',
@@ -32,6 +33,7 @@ const Management = () => {
     dateTime: null
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingQRCode, setUploadingQRCode] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -151,6 +153,7 @@ const Management = () => {
       name: game.name,
       description: game.description,
       image: game.image,
+      icon: game.icon || '',
       rulebook: game.rulebook || '',
       registrationAmount: game.registrationAmount || '',
       minPlayersPerTeam: game.minPlayersPerTeam || '',
@@ -170,6 +173,7 @@ const Management = () => {
       name: '',
       description: '',
       image: '',
+      icon: '',
       rulebook: '',
       registrationAmount: '',
       minPlayersPerTeam: '',
@@ -219,6 +223,46 @@ const Management = () => {
       setToast({ message: error.response?.data?.message || 'Failed to upload image', type: 'error' });
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleIconUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setToast({ message: 'Please select an image file', type: 'error' });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setToast({ message: 'Icon size should be less than 2MB', type: 'error' });
+      return;
+    }
+
+    setUploadingIcon(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/upload/image`,
+        formData,
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setGameFormData(prev => ({ ...prev, icon: response.data.url }));
+      setToast({ message: 'Icon uploaded successfully. Recommended size: 64x64px', type: 'success' });
+    } catch (error) {
+      console.error('Icon upload error:', error);
+      setToast({ message: error.response?.data?.message || 'Failed to upload icon', type: 'error' });
+    } finally {
+      setUploadingIcon(false);
     }
   };
 
@@ -866,6 +910,121 @@ const Management = () => {
                     </label>
                   </div>
                 )}
+              </div>
+
+              {/* Game Icon Upload - Optional */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  fontWeight: '600'
+                }}>
+                  Game Icon (64x64px) - Optional
+                </label>
+                
+                {gameFormData.icon ? (
+                  <div style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: '150px',
+                    height: '150px',
+                    margin: '0 auto',
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden',
+                    border: '2px solid rgba(255, 215, 0, 0.5)',
+                    background: 'rgba(0, 0, 0, 0.3)'
+                  }}>
+                    <img 
+                      src={gameFormData.icon} 
+                      alt="Game icon preview"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        padding: '1rem'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setGameFormData({ ...gameFormData, icon: '' })}
+                      style={{
+                        position: 'absolute',
+                        top: '0.5rem',
+                        right: '0.5rem',
+                        padding: '0.5rem',
+                        background: 'rgba(239, 68, 68, 0.9)',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleIconUpload}
+                      disabled={uploadingIcon}
+                      style={{ display: 'none' }}
+                      id="game-icon-upload"
+                    />
+                    <label
+                      htmlFor="game-icon-upload"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '150px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '2px dashed rgba(255, 215, 0, 0.3)',
+                        borderRadius: '0.5rem',
+                        cursor: uploadingIcon ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      {uploadingIcon ? (
+                        <>
+                          <Loader size="small" />
+                          <span style={{ color: '#FFD700', fontSize: '0.9rem', marginTop: '0.5rem' }}>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" style={{ marginBottom: '0.5rem' }}>
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                          </svg>
+                          <span style={{ color: '#FFD700', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'center' }}>Upload Icon</span>
+                          <span style={{ color: '#888', fontSize: '0.75rem', marginTop: '0.25rem' }}>PNG, JPG up to 2MB</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                )}
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#888',
+                  marginTop: '0.5rem',
+                  marginBottom: 0,
+                  textAlign: 'center'
+                }}>
+                  Small icon for match cards (recommended: 64x64px, PNG with transparency)
+                </p>
               </div>
 
               {/* Rulebook PDF URL */}

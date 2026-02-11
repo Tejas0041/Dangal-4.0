@@ -1,5 +1,6 @@
 import AdminLayout from '../components/AdminLayout';
 import Countdown from '../components/Countdown';
+import Toast from '../components/Toast';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -8,7 +9,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const Dashboard = () => {
   const [userCount, setUserCount] = useState(0);
   const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [matchesVisible, setMatchesVisible] = useState(false);
   const [loadingToggle, setLoadingToggle] = useState(false);
+  const [loadingMatchesToggle, setLoadingMatchesToggle] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchUserCount();
@@ -30,6 +34,7 @@ const Dashboard = () => {
     try {
       const response = await axios.get(`${API_URL}/api/event/settings`);
       setRegistrationOpen(response.data.registrationOpen || false);
+      setMatchesVisible(response.data.matchesVisible || false);
     } catch (err) {
       console.error('Fetch registration status error:', err);
     }
@@ -42,12 +47,28 @@ const Dashboard = () => {
         withCredentials: true,
       });
       setRegistrationOpen(response.data.registrationOpen);
-      alert(response.data.message);
+      setToast({ message: response.data.message, type: 'success' });
     } catch (err) {
       console.error('Toggle registration error:', err);
-      alert('Failed to toggle registration');
+      setToast({ message: 'Failed to toggle registration', type: 'error' });
     } finally {
       setLoadingToggle(false);
+    }
+  };
+
+  const toggleMatchesVisibility = async () => {
+    setLoadingMatchesToggle(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/event/matches/toggle`, {}, {
+        withCredentials: true,
+      });
+      setMatchesVisible(response.data.matchesVisible);
+      setToast({ message: response.data.message, type: 'success' });
+    } catch (err) {
+      console.error('Toggle matches visibility error:', err);
+      setToast({ message: 'Failed to toggle matches visibility', type: 'error' });
+    } finally {
+      setLoadingMatchesToggle(false);
     }
   };
 
@@ -109,83 +130,85 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      {/* Registration Control - Top Priority */}
+      {/* Countdown Section - Moved to Top */}
+      <div style={{ marginBottom: '2rem' }}>
+        <Countdown />
+      </div>
+
+      {/* Control Buttons - Single Row */}
       <div style={{
-        background: registrationOpen 
-          ? 'linear-gradient(135deg, rgba(76,175,80,0.2) 0%, rgba(56,142,60,0.1) 100%)'
-          : 'linear-gradient(135deg, rgba(255,152,0,0.2) 0%, rgba(245,124,0,0.1) 100%)',
-        border: `2px solid ${registrationOpen ? '#4CAF50' : '#FF9800'}`,
-        borderRadius: '1rem',
-        padding: '2rem',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+        gap: '1.5rem',
         marginBottom: '2rem',
-        backdropFilter: 'blur(10px)',
       }}>
+        {/* Registration Control */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1.5rem',
+          background: registrationOpen 
+            ? 'linear-gradient(135deg, rgba(76,175,80,0.2) 0%, rgba(56,142,60,0.1) 100%)'
+            : 'linear-gradient(135deg, rgba(255,152,0,0.2) 0%, rgba(245,124,0,0.1) 100%)',
+          border: `2px solid ${registrationOpen ? '#4CAF50' : '#FF9800'}`,
+          borderRadius: '1rem',
+          padding: '1.5rem',
+          backdropFilter: 'blur(10px)',
         }}>
-          <div style={{ flex: 1, minWidth: '250px' }}>
-            <h2 style={{ 
-              fontSize: '1.75rem', 
-              marginBottom: '0.5rem', 
+          <h3 style={{ 
+            fontSize: '1.25rem', 
+            marginBottom: '0.5rem', 
+            color: registrationOpen ? '#4CAF50' : '#FF9800',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Registration Control
+          </h3>
+          <p style={{ 
+            color: '#aaa', 
+            fontSize: '0.85rem',
+            marginBottom: '0.75rem',
+          }}>
+            {registrationOpen 
+              ? 'Registrations are currently OPEN. Users can sign in and register teams.'
+              : 'Registrations are currently CLOSED. Users will see "Registration Starting Soon" message.'}
+          </p>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.4rem 0.75rem',
+            background: registrationOpen ? 'rgba(76,175,80,0.2)' : 'rgba(255,152,0,0.2)',
+            borderRadius: '0.5rem',
+            marginBottom: '1rem',
+          }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: registrationOpen ? '#4CAF50' : '#FF9800',
+              boxShadow: `0 0 10px ${registrationOpen ? '#4CAF50' : '#FF9800'}`,
+              animation: 'pulse 2s infinite',
+            }}></div>
+            <span style={{ 
               color: registrationOpen ? '#4CAF50' : '#FF9800',
               fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
+              fontSize: '0.85rem',
             }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              Registration Control
-            </h2>
-            <p style={{ 
-              color: '#aaa', 
-              fontSize: '0.95rem',
-              marginBottom: '0.5rem',
-            }}>
-              {registrationOpen 
-                ? 'Registrations are currently OPEN. Users can sign in and register teams.'
-                : 'Registrations are currently CLOSED. Users will see "Registration Starting Soon" message.'}
-            </p>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 1rem',
-              background: registrationOpen ? 'rgba(76,175,80,0.2)' : 'rgba(255,152,0,0.2)',
-              borderRadius: '0.5rem',
-              marginTop: '0.5rem',
-            }}>
-              <div style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                background: registrationOpen ? '#4CAF50' : '#FF9800',
-                boxShadow: `0 0 10px ${registrationOpen ? '#4CAF50' : '#FF9800'}`,
-                animation: 'pulse 2s infinite',
-              }}></div>
-              <span style={{ 
-                color: registrationOpen ? '#4CAF50' : '#FF9800',
-                fontWeight: 'bold',
-                fontSize: '0.9rem',
-              }}>
-                Status: {registrationOpen ? 'OPEN' : 'CLOSED'}
-              </span>
-            </div>
+              Status: {registrationOpen ? 'OPEN' : 'CLOSED'}
+            </span>
           </div>
           <button
             onClick={toggleRegistration}
             disabled={loadingToggle}
             style={{
-              padding: '1.25rem 2.5rem',
+              width: '100%',
+              padding: '1rem',
               background: registrationOpen 
                 ? 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
                 : 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
@@ -194,17 +217,16 @@ const Dashboard = () => {
               color: '#fff',
               fontWeight: 'bold',
               cursor: loadingToggle ? 'not-allowed' : 'pointer',
-              fontSize: '1.1rem',
+              fontSize: '1rem',
               boxShadow: registrationOpen 
                 ? '0 4px 20px rgba(255,152,0,0.4)'
                 : '0 4px 20px rgba(76,175,80,0.4)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
+              justifyContent: 'center',
+              gap: '0.5rem',
               transition: 'all 0.3s',
               opacity: loadingToggle ? 0.7 : 1,
-              minWidth: '200px',
-              justifyContent: 'center',
             }}
             onMouseEnter={(e) => {
               if (!loadingToggle) {
@@ -225,7 +247,7 @@ const Dashboard = () => {
           >
             {loadingToggle ? (
               <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
                   <line x1="12" y1="2" x2="12" y2="6"></line>
                   <line x1="12" y1="18" x2="12" y2="22"></line>
                   <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
@@ -239,7 +261,7 @@ const Dashboard = () => {
               </>
             ) : registrationOpen ? (
               <>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="15" y1="9" x2="9" y2="15"></line>
                   <line x1="9" y1="9" x2="15" y2="15"></line>
@@ -248,7 +270,7 @@ const Dashboard = () => {
               </>
             ) : (
               <>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                   <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
@@ -257,11 +279,144 @@ const Dashboard = () => {
             )}
           </button>
         </div>
-      </div>
 
-      {/* Countdown Section */}
-      <div style={{ marginBottom: '2rem' }}>
-        <Countdown />
+        {/* Matches Visibility Control */}
+        <div style={{
+          background: matchesVisible 
+            ? 'linear-gradient(135deg, rgba(76,175,80,0.2) 0%, rgba(56,142,60,0.1) 100%)'
+            : 'linear-gradient(135deg, rgba(255,152,0,0.2) 0%, rgba(245,124,0,0.1) 100%)',
+          border: `2px solid ${matchesVisible ? '#4CAF50' : '#FF9800'}`,
+          borderRadius: '1rem',
+          padding: '1.5rem',
+          backdropFilter: 'blur(10px)',
+        }}>
+          <h3 style={{ 
+            fontSize: '1.25rem', 
+            marginBottom: '0.5rem', 
+            color: matchesVisible ? '#4CAF50' : '#FF9800',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Matches Visibility
+          </h3>
+          <p style={{ 
+            color: '#aaa', 
+            fontSize: '0.85rem',
+            marginBottom: '0.75rem',
+          }}>
+            {matchesVisible 
+              ? 'Matches are currently VISIBLE. Users can view the match schedule on the website.'
+              : 'Matches are currently HIDDEN. Users will see "Coming Soon" message.'}
+          </p>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.4rem 0.75rem',
+            background: matchesVisible ? 'rgba(76,175,80,0.2)' : 'rgba(255,152,0,0.2)',
+            borderRadius: '0.5rem',
+            marginBottom: '1rem',
+          }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: matchesVisible ? '#4CAF50' : '#FF9800',
+              boxShadow: `0 0 10px ${matchesVisible ? '#4CAF50' : '#FF9800'}`,
+              animation: 'pulse 2s infinite',
+            }}></div>
+            <span style={{ 
+              color: matchesVisible ? '#4CAF50' : '#FF9800',
+              fontWeight: 'bold',
+              fontSize: '0.85rem',
+            }}>
+              Status: {matchesVisible ? 'VISIBLE' : 'HIDDEN'}
+            </span>
+          </div>
+          <button
+            onClick={toggleMatchesVisibility}
+            disabled={loadingMatchesToggle}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              background: matchesVisible 
+                ? 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
+                : 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+              border: 'none',
+              borderRadius: '0.75rem',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: loadingMatchesToggle ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              boxShadow: matchesVisible 
+                ? '0 4px 20px rgba(255,152,0,0.4)'
+                : '0 4px 20px rgba(76,175,80,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s',
+              opacity: loadingMatchesToggle ? 0.7 : 1,
+            }}
+            onMouseEnter={(e) => {
+              if (!loadingMatchesToggle) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = matchesVisible 
+                  ? '0 6px 25px rgba(255,152,0,0.5)'
+                  : '0 6px 25px rgba(76,175,80,0.5)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loadingMatchesToggle) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = matchesVisible 
+                  ? '0 4px 20px rgba(255,152,0,0.4)'
+                  : '0 4px 20px rgba(76,175,80,0.4)';
+              }
+            }}
+          >
+            {loadingMatchesToggle ? (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <line x1="12" y1="2" x2="12" y2="6"></line>
+                  <line x1="12" y1="18" x2="12" y2="22"></line>
+                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="18" y1="12" x2="22" y2="12"></line>
+                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                </svg>
+                Processing...
+              </>
+            ) : matchesVisible ? (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+                Hide Matches
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Show Matches
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -513,6 +668,14 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+      
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       
       <style>{`
         @keyframes spin {

@@ -25,6 +25,7 @@ router.get('/settings', async (req, res) => {
       eventDate: settings.eventDate,
       eventName: settings.eventName,
       registrationOpen: settings.registrationOpen || false,
+      matchesVisible: settings.matchesVisible || false,
     });
   } catch (error) {
     console.error('Get event settings error:', error);
@@ -69,6 +70,7 @@ router.put('/settings', authenticateAdmin, async (req, res) => {
       eventDate: settings.eventDate,
       eventName: settings.eventName,
       registrationOpen: settings.registrationOpen || false,
+      matchesVisible: settings.matchesVisible || false,
     });
   } catch (error) {
     console.error('Update event settings error:', error);
@@ -89,6 +91,7 @@ router.post('/registration/toggle', authenticateAdmin, async (req, res) => {
         eventName: 'Dangal 4.0',
         isActive: true,
         registrationOpen: true,
+        matchesVisible: false,
       });
     } else {
       settings.registrationOpen = !settings.registrationOpen;
@@ -101,6 +104,36 @@ router.post('/registration/toggle', authenticateAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Toggle registration error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/event/matches/toggle
+// @desc    Toggle matches visibility
+// @access  Private (Admin)
+router.post('/matches/toggle', authenticateAdmin, async (req, res) => {
+  try {
+    let settings = await EventSettings.findOne({ isActive: true });
+
+    if (!settings) {
+      settings = await EventSettings.create({
+        eventDate: new Date('2026-02-16T00:00:00'),
+        eventName: 'Dangal 4.0',
+        isActive: true,
+        registrationOpen: false,
+        matchesVisible: true,
+      });
+    } else {
+      settings.matchesVisible = !settings.matchesVisible;
+      await settings.save();
+    }
+
+    res.json({
+      message: `Matches ${settings.matchesVisible ? 'shown' : 'hidden'} successfully`,
+      matchesVisible: settings.matchesVisible,
+    });
+  } catch (error) {
+    console.error('Toggle matches visibility error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

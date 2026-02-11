@@ -177,7 +177,6 @@ const ScheduleManagement = () => {
     const gameTeams = getTeamsByGame(gameId);
     
     // Get all team IDs that are already in matches (excluding current match being edited)
-    // Only filter by same round if it's Preliminary
     const usedTeamIds = matches
       .filter(match => {
         // Exclude the current match being edited
@@ -188,12 +187,14 @@ const ScheduleManagement = () => {
         if (match.game._id !== gameId && match.game !== gameId) {
           return false;
         }
-        // If current round is Preliminary, only exclude teams from Preliminary matches
-        // For other rounds, teams are available regardless of previous rounds
+        // For Preliminary round, only exclude teams from Preliminary matches
+        // For other rounds (Quarter Final, Semi Final, Final), only exclude teams from the SAME round
         if (currentRound === 'Preliminary') {
           return match.round === 'Preliminary';
+        } else {
+          // For Quarter Final, Semi Final, Final - exclude teams already in matches of the same round
+          return match.round === currentRound;
         }
-        return false; // For non-Preliminary rounds, don't exclude any teams
       })
       .flatMap(match => [match.teamA._id || match.teamA, match.teamB._id || match.teamB]);
     

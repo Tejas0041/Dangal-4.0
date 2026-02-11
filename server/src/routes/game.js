@@ -32,7 +32,8 @@ router.post('/', authenticateAdmin, async (req, res) => {
     const { 
       name, 
       description, 
-      image, 
+      image,
+      icon,
       rulebook, 
       registrationAmount,
       minPlayersPerTeam,
@@ -55,6 +56,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
       name,
       description,
       image,
+      icon: icon || '',
       rulebook,
       registrationAmount,
       minPlayersPerTeam,
@@ -79,7 +81,8 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
     const { 
       name, 
       description, 
-      image, 
+      image,
+      icon,
       rulebook, 
       registrationAmount,
       minPlayersPerTeam,
@@ -98,6 +101,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
     if (name) game.name = name;
     if (description) game.description = description;
     if (image) game.image = image;
+    if (icon !== undefined) game.icon = icon || '';
     if (rulebook !== undefined) game.rulebook = rulebook;
     if (registrationAmount !== undefined) game.registrationAmount = registrationAmount;
     if (minPlayersPerTeam !== undefined) game.minPlayersPerTeam = minPlayersPerTeam;

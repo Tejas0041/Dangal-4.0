@@ -8,13 +8,13 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const matches = await Schedule.find()
-      .populate('game', 'name venue')
+      .populate('game', 'name venue image icon')
       .populate({
         path: 'teamA',
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate({
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate('result.winner', 'teamName')
@@ -39,13 +39,13 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const match = await Schedule.findById(req.params.id)
-      .populate('game', 'name venue')
+      .populate('game', 'name venue image icon')
       .populate({
         path: 'teamA',
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate({
@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate('result.winner', 'teamName');
@@ -98,13 +98,13 @@ router.post('/', authenticateAdmin, async (req, res) => {
     await match.save();
     
     const populatedMatch = await Schedule.findById(match._id)
-      .populate('game', 'name venue')
+      .populate('game', 'name venue image icon')
       .populate({
         path: 'teamA',
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate({
@@ -112,7 +112,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       });
 
@@ -149,13 +149,13 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
       { game, teamA, teamB, date, time, venue, round, status, result, matchNumber },
       { new: true, runValidators: true }
     )
-      .populate('game', 'name venue')
+      .populate('game', 'name venue image icon')
       .populate({
         path: 'teamA',
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate({
@@ -163,7 +163,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate('result.winner', 'teamName');
@@ -199,13 +199,13 @@ router.delete('/:id', authenticateAdmin, async (req, res) => {
 router.get('/game/:gameId', async (req, res) => {
   try {
     const matches = await Schedule.find({ game: req.params.gameId })
-      .populate('game', 'name venue')
+      .populate('game', 'name venue image icon')
       .populate({
         path: 'teamA',
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate({
@@ -213,7 +213,7 @@ router.get('/game/:gameId', async (req, res) => {
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate('result.winner', 'teamName')
@@ -239,13 +239,13 @@ router.get('/date/:date', async (req, res) => {
         $lt: endDate
       }
     })
-      .populate('game', 'name venue')
+      .populate('game', 'name venue image icon')
       .populate({
         path: 'teamA',
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate({
@@ -253,7 +253,7 @@ router.get('/date/:date', async (req, res) => {
         select: 'teamName hallId',
         populate: {
           path: 'hallId',
-          select: 'name'
+          select: 'name image'
         }
       })
       .populate('result.winner', 'teamName')
