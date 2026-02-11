@@ -10,6 +10,7 @@ const navItems = [
   { name: "About", href: "/#about" },
   { name: "Events", href: "/#events" },
   { name: "Matches", href: "/matches" },
+  { name: "Scores", href: "/scores" },
   { name: "Gallery", href: "/#gallery" },
   { name: "Winners", href: "/#winners" },
 ];
@@ -79,7 +80,7 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-2">
           <div className="flex items-center bg-white/5 backdrop-blur-md rounded-full px-2 border border-white/10 mr-4 h-[44px]">
             {navItems.map((item) => (
               <a
@@ -91,11 +92,11 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
                     handleNavClick(item.href);
                   }
                 }}
-                className="px-4 h-full flex items-center text-xs font-bold tracking-widest uppercase text-white/60 hover:text-white transition-all relative group"
+                className="px-3 xl:px-4 h-full flex items-center text-xs font-bold tracking-widest uppercase text-white/60 hover:text-white transition-all relative group whitespace-nowrap"
               >
                 {item.name}
                 <motion.span 
-                  className="absolute bottom-1 left-4 right-4 h-[1px] bg-primary scale-x-0 group-hover:scale-x-100 transition-transform"
+                  className="absolute bottom-1 left-3 xl:left-4 right-3 xl:right-4 h-[1px] bg-primary scale-x-0 group-hover:scale-x-100 transition-transform"
                 />
               </a>
             ))}
@@ -246,7 +247,7 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
 
         {/* Mobile Toggle */}
         <button
-          className="md:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white hover:text-primary transition-colors"
+          className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white hover:text-primary transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}

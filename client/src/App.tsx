@@ -9,6 +9,8 @@ import Home from "@/pages/Home";
 import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
 import Matches from "@/pages/Matches";
+import Scores from "@/pages/Scores";
+import MatchDetail from "@/pages/MatchDetail";
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/matches" element={<Matches />} />
+            <Route path="/scores" element={<Scores />} />
+            <Route path="/match/:matchId" element={<MatchDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>

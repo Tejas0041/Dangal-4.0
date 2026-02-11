@@ -16,6 +16,11 @@ const teamSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  secondTeamName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   players: [{
     name: {
       type: String,

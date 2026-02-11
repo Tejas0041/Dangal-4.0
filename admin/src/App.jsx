@@ -8,6 +8,7 @@ import HallManagement from './pages/HallManagement';
 import Registrations from './pages/Registrations';
 import Teams from './pages/Teams';
 import ScheduleManagement from './pages/ScheduleManagement';
+import ScoreManagement from './pages/ScoreManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -69,6 +70,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ScheduleManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/scores"
+            element={
+              <ProtectedRoute>
+                <ScoreManagement />
               </ProtectedRoute>
             }
           />

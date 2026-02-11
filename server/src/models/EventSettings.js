@@ -22,6 +22,10 @@ const eventSettingsSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    scoresVisible: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

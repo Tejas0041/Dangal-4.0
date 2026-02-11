@@ -10,6 +10,10 @@ const EventSettings = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [matchesVisible, setMatchesVisible] = useState(false);
+  const [scoresVisible, setScoresVisible] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState({ registration: false, matches: false, scores: false });
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -22,6 +26,9 @@ const EventSettings = () => {
       const response = await axios.get(`${API_URL}/api/event/settings`);
       setEventDate(dayjs(response.data.eventDate));
       setEventName(response.data.eventName);
+      setRegistrationOpen(response.data.registrationOpen || false);
+      setMatchesVisible(response.data.matchesVisible || false);
+      setScoresVisible(response.data.scoresVisible || false);
     } catch (error) {
       console.error('Fetch settings error:', error);
     }
@@ -55,6 +62,37 @@ const EventSettings = () => {
       setTimeout(() => setError(''), 3000);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggle = async (type) => {
+    setToggleLoading(prev => ({ ...prev, [type]: true }));
+    setMessage('');
+    setError('');
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/event/${type}/toggle`,
+        {},
+        { withCredentials: true }
+      );
+
+      setMessage(response.data.message);
+      
+      if (type === 'registration') {
+        setRegistrationOpen(response.data.registrationOpen);
+      } else if (type === 'matches') {
+        setMatchesVisible(response.data.matchesVisible);
+      } else if (type === 'scores') {
+        setScoresVisible(response.data.scoresVisible);
+      }
+
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || `Failed to toggle ${type}`);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setToggleLoading(prev => ({ ...prev, [type]: false }));
     }
   };
 
@@ -289,6 +327,153 @@ const EventSettings = () => {
                 )}
               </button>
             </form>
+          </div>
+
+          {/* Visibility Toggles */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 215, 0, 0.2)',
+            borderRadius: '1rem',
+            padding: '2.5rem',
+            marginTop: '2rem',
+          }}>
+            <h2 style={{ 
+              fontSize: '2rem', 
+              marginBottom: '0.5rem', 
+              color: '#FFD700',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Visibility Controls
+            </h2>
+            <p style={{ color: '#888', marginBottom: '2rem', fontSize: '0.95rem' }}>
+              Control what users can see on the website
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Registration Toggle */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1.5rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 215, 0, 0.15)',
+                borderRadius: '0.75rem',
+              }}>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+                    Registration
+                  </h3>
+                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                    {registrationOpen ? 'Users can register for events' : 'Registration is closed'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggle('registration')}
+                  disabled={toggleLoading.registration}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: registrationOpen ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid',
+                    borderColor: registrationOpen ? '#22c55e' : 'rgba(255, 215, 0, 0.3)',
+                    borderRadius: '0.5rem',
+                    color: registrationOpen ? '#000' : '#fff',
+                    fontWeight: 'bold',
+                    cursor: toggleLoading.registration ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s',
+                    minWidth: '100px',
+                  }}
+                >
+                  {toggleLoading.registration ? 'Loading...' : (registrationOpen ? 'Open' : 'Closed')}
+                </button>
+              </div>
+
+              {/* Matches Toggle */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1.5rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 215, 0, 0.15)',
+                borderRadius: '0.75rem',
+              }}>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+                    Match Schedule
+                  </h3>
+                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                    {matchesVisible ? 'Match schedule is visible to users' : 'Match schedule is hidden'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggle('matches')}
+                  disabled={toggleLoading.matches}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: matchesVisible ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid',
+                    borderColor: matchesVisible ? '#22c55e' : 'rgba(255, 215, 0, 0.3)',
+                    borderRadius: '0.5rem',
+                    color: matchesVisible ? '#000' : '#fff',
+                    fontWeight: 'bold',
+                    cursor: toggleLoading.matches ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s',
+                    minWidth: '100px',
+                  }}
+                >
+                  {toggleLoading.matches ? 'Loading...' : (matchesVisible ? 'Visible' : 'Hidden')}
+                </button>
+              </div>
+
+              {/* Scores Toggle */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1.5rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 215, 0, 0.15)',
+                borderRadius: '0.75rem',
+              }}>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+                    Live Scores
+                  </h3>
+                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                    {scoresVisible ? 'Live scores page is visible to users' : 'Live scores page is hidden'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggle('scores')}
+                  disabled={toggleLoading.scores}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: scoresVisible ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid',
+                    borderColor: scoresVisible ? '#22c55e' : 'rgba(255, 215, 0, 0.3)',
+                    borderRadius: '0.5rem',
+                    color: scoresVisible ? '#000' : '#fff',
+                    fontWeight: 'bold',
+                    cursor: toggleLoading.scores ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s',
+                    minWidth: '100px',
+                  }}
+                >
+                  {toggleLoading.scores ? 'Loading...' : (scoresVisible ? 'Visible' : 'Hidden')}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </ConfigProvider>

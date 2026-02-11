@@ -24,6 +24,15 @@ const Registrations = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -69,6 +78,14 @@ const Registrations = () => {
     if (typeof gameId === 'object') return gameId.name;
     const game = games.find(g => g._id === gameId);
     return game?.name || 'Unknown';
+  };
+
+  const getTeamDisplayName = (team) => {
+    const hallName = team.hallId?.name || 'Unknown Hall';
+    if (team.secondTeamName) {
+      return `${team.secondTeamName} (Team ${team.teamName} - ${hallName})`;
+    }
+    return `${hallName} (Team ${team.teamName})`;
   };
 
   const getSelectedHallName = () => {
@@ -212,17 +229,17 @@ const Registrations = () => {
     <AdminLayout>
       <div>
         {/* Header Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           <div style={{
             background: 'rgba(255, 215, 0, 0.1)',
             border: '1px solid rgba(255, 215, 0, 0.3)',
             borderRadius: '1rem',
-            padding: '1.5rem',
+            padding: isMobile ? '1rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '0.5rem' }}>
               {teams.length}
             </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Teams
             </div>
           </div>
@@ -231,12 +248,12 @@ const Registrations = () => {
             background: 'rgba(34, 197, 94, 0.1)',
             border: '1px solid rgba(34, 197, 94, 0.3)',
             borderRadius: '1rem',
-            padding: '1.5rem',
+            padding: isMobile ? '1rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#22c55e', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#22c55e', marginBottom: '0.5rem' }}>
               {halls.length}
             </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Participating Halls
             </div>
           </div>
@@ -245,12 +262,12 @@ const Registrations = () => {
             background: 'rgba(59, 130, 246, 0.1)',
             border: '1px solid rgba(59, 130, 246, 0.3)',
             borderRadius: '1rem',
-            padding: '1.5rem',
+            padding: isMobile ? '1rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#3b82f6', marginBottom: '0.5rem' }}>
               {games.length}
             </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Active Events
             </div>
           </div>
@@ -259,12 +276,12 @@ const Registrations = () => {
             background: 'rgba(168, 85, 247, 0.1)',
             border: '1px solid rgba(168, 85, 247, 0.3)',
             borderRadius: '1rem',
-            padding: '1.5rem',
+            padding: isMobile ? '1rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#a855f7', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#a855f7', marginBottom: '0.5rem' }}>
               {teams.reduce((sum, team) => sum + team.players.length, 0)}
             </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Players
             </div>
           </div>
@@ -276,15 +293,15 @@ const Registrations = () => {
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(255, 215, 0, 0.2)',
           borderRadius: '1rem',
-          padding: '1.5rem',
+          padding: isMobile ? '1rem' : '1.5rem',
           marginBottom: '2rem',
           position: 'relative',
           zIndex: 50,
         }}>
-          <h3 style={{ color: '#FFD700', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>
+          <h3 style={{ color: '#FFD700', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: '600' }}>
             Filters & Search
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', position: 'relative', zIndex: 50 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', position: 'relative', zIndex: 50 }}>
             {/* Search Bar */}
             <div>
               <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
@@ -770,14 +787,14 @@ const Registrations = () => {
           borderRadius: '1rem',
           overflow: 'hidden',
         }}>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
-            <h3 style={{ color: '#FFD700', fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>
+          <div style={{ padding: isMobile ? '1rem' : '1.5rem', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
+            <h3 style={{ color: '#FFD700', fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: '600', margin: 0 }}>
               Registered Teams ({filteredTeams.length})
             </h3>
           </div>
 
           {filteredTeams.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>
+            <div style={{ padding: isMobile ? '2rem 1rem' : '3rem', textAlign: 'center', color: '#888' }}>
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 1rem', opacity: 0.5 }}>
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
@@ -787,96 +804,126 @@ const Registrations = () => {
               <p>No teams found with the selected filters</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255, 215, 0, 0.1)', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Hall/Hostel</th>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Team Name</th>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Event</th>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Players</th>
-                    <th style={{ padding: '1rem', textAlign: 'center', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem', width: '200px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTeams.map((team, index) => (
-                    <tr
-                      key={team._id}
-                      style={{
-                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                        transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '1rem', color: '#ccc' }}>
-                        {highlightText(getHallName(team.hallId), searchQuery)}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#fff', fontWeight: '500' }}>
-                        Team {highlightText(team.teamName, searchQuery)}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#ccc' }}>
-                        {highlightText(getGameName(team.gameId), searchQuery)}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#ccc' }}>
-                        {team.players.length} players
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <button
-                            onClick={() => viewTeamDetails(team)}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              background: 'rgba(255, 215, 0, 0.2)',
-                              border: '1px solid rgba(255, 215, 0, 0.4)',
-                              borderRadius: '0.5rem',
-                              color: '#FFD700',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(team)}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              background: 'rgba(239, 68, 68, 0.2)',
-                              border: '1px solid rgba(239, 68, 68, 0.4)',
-                              borderRadius: '0.5rem',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
+            <div style={{ position: 'relative' }}>
+              {/* Swipe indicator for mobile */}
+              {isMobile && (
+                <div style={{
+                  padding: '0.75rem',
+                  background: 'rgba(255, 215, 0, 0.1)',
+                  borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
+                  textAlign: 'center',
+                  color: '#FFD700',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                  Swipe to view all columns
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+              )}
+              <div style={{ 
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '800px' : 'auto' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255, 215, 0, 0.1)', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
+                      <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Hall/Hostel</th>
+                      <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Team Name</th>
+                      <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Event</th>
+                      <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Players</th>
+                      <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'center', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', width: isMobile ? '160px' : '200px', whiteSpace: 'nowrap' }}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredTeams.map((team, index) => (
+                      <tr
+                        key={team._id}
+                        style={{
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#ccc', fontSize: isMobile ? '0.85rem' : '1rem', whiteSpace: 'nowrap' }}>
+                          {highlightText(getHallName(team.hallId), searchQuery)}
+                        </td>
+                        <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#fff', fontWeight: '500', fontSize: isMobile ? '0.85rem' : '1rem', whiteSpace: 'nowrap' }}>
+                          {highlightText(getTeamDisplayName(team), searchQuery)}
+                        </td>
+                        <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#ccc', fontSize: isMobile ? '0.85rem' : '1rem', whiteSpace: 'nowrap' }}>
+                          {highlightText(getGameName(team.gameId), searchQuery)}
+                        </td>
+                        <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#ccc', fontSize: isMobile ? '0.85rem' : '1rem', whiteSpace: 'nowrap' }}>
+                          {team.players.length} players
+                        </td>
+                        <td style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'nowrap' }}>
+                            <button
+                              onClick={() => viewTeamDetails(team)}
+                              style={{
+                                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                                background: 'rgba(255, 215, 0, 0.2)',
+                                border: '1px solid rgba(255, 215, 0, 0.4)',
+                                borderRadius: '0.5rem',
+                                color: '#FFD700',
+                                cursor: 'pointer',
+                                fontSize: isMobile ? '0.75rem' : '0.85rem',
+                                fontWeight: '500',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                              }}
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(team)}
+                              style={{
+                                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                border: '1px solid rgba(239, 68, 68, 0.4)',
+                                borderRadius: '0.5rem',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                fontSize: isMobile ? '0.75rem' : '0.85rem',
+                                fontWeight: '500',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -894,14 +941,14 @@ const Registrations = () => {
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
-            padding: '1rem',
+            padding: isMobile ? '0.5rem' : '1rem',
           }}
           onClick={() => setShowTeamModal(false)}
         >
           <div
             style={{
               background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
-              borderRadius: '1.5rem',
+              borderRadius: isMobile ? '1rem' : '1.5rem',
               border: '1px solid rgba(255, 215, 0, 0.3)',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
               width: '100%',
@@ -913,16 +960,16 @@ const Registrations = () => {
           >
             {/* Header */}
             <div style={{
-              padding: '2rem',
+              padding: isMobile ? '1rem' : '2rem',
               borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
               background: 'rgba(255, 215, 0, 0.05)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div>
-                  <h2 style={{ color: '#FFD700', fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                    Team {selectedTeam.teamName}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '1rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2 style={{ color: '#FFD700', fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
+                    {getTeamDisplayName(selectedTeam)}
                   </h2>
-                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                  <p style={{ color: '#888', fontSize: isMobile ? '0.8rem' : '0.9rem', wordBreak: 'break-word' }}>
                     {getHallName(selectedTeam.hallId)} • {getGameName(selectedTeam.gameId)}
                   </p>
                 </div>
@@ -938,6 +985,7 @@ const Registrations = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -949,10 +997,10 @@ const Registrations = () => {
             </div>
 
             {/* Content */}
-            <div style={{ padding: '2rem' }}>
+            <div style={{ padding: isMobile ? '1rem' : '2rem' }}>
               {/* Players List */}
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ marginBottom: isMobile ? '1.5rem' : '2rem' }}>
+                <h3 style={{ color: '#FFD700', fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
@@ -969,15 +1017,15 @@ const Registrations = () => {
                         background: 'rgba(255, 255, 255, 0.05)',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '0.75rem',
-                        padding: '1rem',
+                        padding: isMobile ? '0.75rem' : '1rem',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '1rem',
+                        gap: isMobile ? '0.75rem' : '1rem',
                       }}
                     >
                       <div style={{
-                        width: '40px',
-                        height: '40px',
+                        width: isMobile ? '35px' : '40px',
+                        height: isMobile ? '35px' : '40px',
                         borderRadius: '50%',
                         background: 'rgba(255, 215, 0, 0.2)',
                         border: '2px solid rgba(255, 215, 0, 0.4)',
@@ -986,11 +1034,13 @@ const Registrations = () => {
                         justifyContent: 'center',
                         color: '#FFD700',
                         fontWeight: 'bold',
+                        fontSize: isMobile ? '0.85rem' : '1rem',
+                        flexShrink: 0,
                       }}>
                         {idx + 1}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ color: '#fff', fontWeight: '500' }}>{player.name}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: '#fff', fontWeight: '500', fontSize: isMobile ? '0.9rem' : '1rem', wordBreak: 'break-word' }}>{player.name}</div>
                       </div>
                     </div>
                   ))}
@@ -999,8 +1049,8 @@ const Registrations = () => {
 
               {/* Payment Screenshot */}
               {selectedTeam.paymentScreenshot && (
-                <div style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ marginBottom: isMobile ? '1.5rem' : '2rem' }}>
+                  <h3 style={{ color: '#FFD700', fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                       <line x1="1" y1="10" x2="23" y2="10"></line>
@@ -1011,7 +1061,7 @@ const Registrations = () => {
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '0.75rem',
-                    padding: '1rem',
+                    padding: isMobile ? '0.75rem' : '1rem',
                     textAlign: 'center',
                   }}>
                     <img
@@ -1019,7 +1069,7 @@ const Registrations = () => {
                       alt="Payment Screenshot"
                       style={{
                         maxWidth: '100%',
-                        maxHeight: '400px',
+                        maxHeight: isMobile ? '300px' : '400px',
                         borderRadius: '0.5rem',
                         objectFit: 'contain',
                       }}

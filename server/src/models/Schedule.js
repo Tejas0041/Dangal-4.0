@@ -33,10 +33,14 @@ const scheduleSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  matchType: {
+    type: String,
+    enum: ['Singles', 'Doubles']
+  },
   round: {
     type: String,
-    enum: ['Preliminary', 'Quarter Final', 'Semi Final', 'Final'],
-    default: 'Preliminary'
+    enum: ['League Stage', 'Semi Final', 'Final'],
+    default: 'League Stage'
   },
   status: {
     type: String,
@@ -49,7 +53,32 @@ const scheduleSchema = new mongoose.Schema({
       ref: 'Team'
     },
     scoreA: Number,
-    scoreB: Number
+    scoreB: Number,
+    teamAScore: {
+      raidPoints: { type: Number, default: 0 },
+      bonusPoints: { type: Number, default: 0 },
+      allOutPoints: { type: Number, default: 0 },
+      extraPoints: { type: Number, default: 0 }
+    },
+    teamBScore: {
+      raidPoints: { type: Number, default: 0 },
+      bonusPoints: { type: Number, default: 0 },
+      allOutPoints: { type: Number, default: 0 },
+      extraPoints: { type: Number, default: 0 }
+    },
+    // Table Tennis specific scoring
+    tableTennis: {
+      sets: [{
+        teamAScore: { type: Number, default: 0 },
+        teamBScore: { type: Number, default: 0 },
+        winner: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Team'
+        }
+      }],
+      setsWonA: { type: Number, default: 0 },
+      setsWonB: { type: Number, default: 0 }
+    }
   }
 }, {
   timestamps: true

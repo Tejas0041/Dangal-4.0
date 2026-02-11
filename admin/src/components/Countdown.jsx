@@ -221,43 +221,64 @@ const Countdown = () => {
       border: '1px solid rgba(255, 215, 0, 0.3)',
       borderRadius: '1rem',
       padding: '2rem',
-    }}>
+    }}
+    className="countdown-container"
+    >
       <div style={{
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         gap: '2rem',
         flexWrap: 'wrap',
-      }}>
+      }}
+      className="countdown-grid"
+      >
         <CircularTimer value={timeLeft.days} max={30} label="DAYS" segments={30} />
         <CircularTimer value={timeLeft.hours} max={24} label="HOURS" segments={24} />
         <CircularTimer value={timeLeft.minutes} max={60} label="MINS" segments={60} />
         <CircularTimer value={timeLeft.seconds} max={60} label="SECS" segments={60} />
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .countdown-container {
+            padding: 1rem !important;
+          }
+          .countdown-grid {
+            gap: 1.5rem !important;
+            max-width: 100% !important;
+            justify-content: space-around !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
 
 function CircularTimer({ value, max, label, segments }) {
-  const size = 140;
-  const center = size / 2;
-  const radius = size / 2 - 10;
-  const segmentLength = 8;
-  const segmentWidth = 2;
-  
+  // Use CSS variables for responsive sizing
   const filledSegments = Math.floor((value / max) * segments);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-      <div style={{ position: 'relative', width: `${size}px`, height: `${size}px` }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }} className="timer-item">
+      <div style={{ position: 'relative' }} className="timer-circle-wrapper">
         <svg
-          height={size}
-          width={size}
-          style={{ transform: 'rotate(-90deg)' }}
+          viewBox="0 0 140 140"
+          className="timer-svg"
+          style={{ 
+            width: '140px', 
+            height: '140px',
+            transform: 'rotate(-90deg)',
+            display: 'block'
+          }}
         >
           {Array.from({ length: segments }).map((_, index) => {
             const angle = (index * 360) / segments;
             const isFilled = index < filledSegments;
+            const center = 70;
+            const radius = 60;
+            const segmentLength = 8;
+            const segmentWidth = 2;
             
             const startX = center + radius * Math.cos((angle * Math.PI) / 180);
             const startY = center + radius * Math.sin((angle * Math.PI) / 180);
@@ -281,15 +302,16 @@ function CircularTimer({ value, max, label, segments }) {
         </svg>
         
         <div 
+          className="timer-value-wrapper"
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            width: `${size}px`,
-            height: `${size}px`,
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            pointerEvents: 'none',
           }}
         >
           <span style={{
@@ -297,7 +319,10 @@ function CircularTimer({ value, max, label, segments }) {
             fontWeight: 'bold',
             color: '#fff',
             textShadow: '0 0 15px rgba(255,215,0,0.6)',
-          }}>
+            lineHeight: 1,
+          }}
+          className="timer-value"
+          >
             {value.toString().padStart(2, '0')}
           </span>
         </div>
@@ -309,9 +334,35 @@ function CircularTimer({ value, max, label, segments }) {
         letterSpacing: '0.3em',
         color: '#FFD700',
         fontWeight: 'bold',
-      }}>
+      }}
+      className="timer-label"
+      >
         {label}
       </span>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .timer-item {
+            width: calc(50% - 1rem);
+            max-width: 120px;
+          }
+          .timer-circle-wrapper {
+            width: 100%;
+            aspect-ratio: 1;
+          }
+          .timer-svg {
+            width: 100% !important;
+            height: 100% !important;
+          }
+          .timer-value {
+            font-size: 2.25rem !important;
+          }
+          .timer-label {
+            font-size: 0.65rem !important;
+            letter-spacing: 0.2em !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -23,7 +23,7 @@ router.get('/hall/:hallId', authenticate, async (req, res) => {
 // Get registration status for a hall (which games have teams registered)
 router.get('/status/:hallId', authenticate, async (req, res) => {
   try {
-    const teams = await Team.find({ hallId: req.params.hallId }).select('gameId teamName');
+    const teams = await Team.find({ hallId: req.params.hallId }).select('gameId teamName secondTeamName');
     const games = await Game.find().select('name maxTeams');
     
     const registrationStatus = games.map(game => {
@@ -33,7 +33,10 @@ router.get('/status/:hallId', authenticate, async (req, res) => {
         gameName: game.name,
         teamsRegistered: gameTeams.length,
         maxTeams: game.maxTeams,
-        teamNames: gameTeams.map(t => t.teamName),
+        teamNames: gameTeams.map(t => ({
+          teamName: t.teamName,
+          secondTeamName: t.secondTeamName
+        })),
         canRegisterMore: gameTeams.length < game.maxTeams
       };
     });
@@ -48,7 +51,7 @@ router.get('/status/:hallId', authenticate, async (req, res) => {
 // Create a new team
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { hallId, gameId, teamName, players, paymentScreenshot } = req.body;
+    const { hallId, gameId, teamName, secondTeamName, players, paymentScreenshot } = req.body;
 
     // Validate game exists
     const game = await Game.findById(gameId);
@@ -85,6 +88,7 @@ router.post('/', authenticate, async (req, res) => {
       hallId,
       gameId,
       teamName,
+      secondTeamName: secondTeamName || '',
       players,
       paymentScreenshot,
       registeredBy: req.user._id

@@ -19,14 +19,15 @@ const ScheduleManagement = () => {
   const [editingMatch, setEditingMatch] = useState(null);
   const [formData, setFormData] = useState({
     game: '',
-    round: 'Preliminary',
+    round: 'League Stage',
     teamA: '',
     teamB: '',
     date: null,
     time: null,
     venue: '',
     status: 'Scheduled',
-    matchNumber: null
+    matchNumber: null,
+    matchType: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -37,10 +38,24 @@ const ScheduleManagement = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [matchToDelete, setMatchToDelete] = useState(null);
   const [toast, setToast] = useState(null);
+  const [statusDropdown, setStatusDropdown] = useState(null); // Track which match's dropdown is open
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Track which match is being updated
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (statusDropdown) {
+        setStatusDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [statusDropdown]);
 
   const fetchData = async () => {
     try {
@@ -140,7 +155,8 @@ const ScheduleManagement = () => {
       time: match.time ? dayjs(match.time, 'HH:mm') : null,
       venue: selectedGame?.venue || match.venue,
       status: match.status,
-      matchNumber: match.matchNumber
+      matchNumber: match.matchNumber,
+      matchType: match.matchType || ''
     });
     // Set the team names for display
     setTeamASearch(getTeamFullName(match.teamA));
@@ -151,14 +167,15 @@ const ScheduleManagement = () => {
   const resetForm = () => {
     setFormData({
       game: '',
-      round: 'Preliminary',
+      round: 'League Stage',
       teamA: '',
       teamB: '',
       date: null,
       time: null,
       venue: '',
       status: 'Scheduled',
-      matchNumber: null
+      matchNumber: null,
+      matchType: ''
     });
     setTeamASearch('');
     setTeamBSearch('');
@@ -172,7 +189,7 @@ const ScheduleManagement = () => {
     return teams.filter(team => team.gameId?._id === gameId || team.gameId === gameId);
   };
 
-  const getAvailableTeams = (gameId, excludeMatchId = null, currentRound = 'Preliminary') => {
+  const getAvailableTeams = (gameId, excludeMatchId = null, currentRound = 'League Stage') => {
     // Get all teams for this game
     const gameTeams = getTeamsByGame(gameId);
     
@@ -187,12 +204,12 @@ const ScheduleManagement = () => {
         if (match.game._id !== gameId && match.game !== gameId) {
           return false;
         }
-        // For Preliminary round, only exclude teams from Preliminary matches
-        // For other rounds (Quarter Final, Semi Final, Final), only exclude teams from the SAME round
-        if (currentRound === 'Preliminary') {
-          return match.round === 'Preliminary';
+        // For League Stage round, only exclude teams from League Stage matches
+        // For other rounds (Semi Final, Final), only exclude teams from the SAME round
+        if (currentRound === 'League Stage') {
+          return match.round === 'League Stage';
         } else {
-          // For Quarter Final, Semi Final, Final - exclude teams already in matches of the same round
+          // For Semi Final, Final - exclude teams already in matches of the same round
           return match.round === currentRound;
         }
       })
@@ -217,9 +234,10 @@ const ScheduleManagement = () => {
     availableTeams = availableTeams.filter(team => team._id !== formData.teamB);
     
     if (!teamASearch) return availableTeams;
-    return availableTeams.filter(team => 
-      `${team.hallId?.name || ''} ${team.teamName}`.toLowerCase().includes(teamASearch.toLowerCase())
-    );
+    return availableTeams.filter(team => {
+      const searchText = `${team.hallId?.name || ''} ${team.teamName} ${team.secondTeamName || ''}`.toLowerCase();
+      return searchText.includes(teamASearch.toLowerCase());
+    });
   };
 
   const getFilteredTeamsB = () => {
@@ -237,9 +255,10 @@ const ScheduleManagement = () => {
     availableTeams = availableTeams.filter(team => team._id !== formData.teamA);
     
     if (!teamBSearch) return availableTeams;
-    return availableTeams.filter(team => 
-      `${team.hallId?.name || ''} ${team.teamName}`.toLowerCase().includes(teamBSearch.toLowerCase())
-    );
+    return availableTeams.filter(team => {
+      const searchText = `${team.hallId?.name || ''} ${team.teamName} ${team.secondTeamName || ''}`.toLowerCase();
+      return searchText.includes(teamBSearch.toLowerCase());
+    });
   };
 
   const handleGameChange = (gameId) => {
@@ -249,7 +268,8 @@ const ScheduleManagement = () => {
       game: gameId, 
       teamA: '', 
       teamB: '',
-      venue: selectedGame?.venue || ''
+      venue: selectedGame?.venue || '',
+      matchType: ''
     });
     setTeamASearch('');
     setTeamBSearch('');
@@ -257,13 +277,13 @@ const ScheduleManagement = () => {
 
   const handleTeamASelect = (team) => {
     setFormData({ ...formData, teamA: team._id });
-    setTeamASearch(`${team.hallId?.name || 'Unknown Hall'} (Team ${team.teamName})`);
+    setTeamASearch(getTeamFullName(team));
     setShowTeamADropdown(false);
   };
 
   const handleTeamBSelect = (team) => {
     setFormData({ ...formData, teamB: team._id });
-    setTeamBSearch(`${team.hallId?.name || 'Unknown Hall'} (Team ${team.teamName})`);
+    setTeamBSearch(getTeamFullName(team));
     setShowTeamBDropdown(false);
   };
 
@@ -291,7 +311,11 @@ const ScheduleManagement = () => {
 
   const getTeamFullName = (team) => {
     if (!team) return 'Unknown Team';
-    return `${team.hallId?.name || 'Unknown Hall'} (Team ${team.teamName})`;
+    const hallName = team.hallId?.name || 'Unknown Hall';
+    if (team.secondTeamName) {
+      return `${team.secondTeamName} (Team ${team.teamName} - ${hallName})`;
+    }
+    return `${hallName} (Team ${team.teamName})`;
   };
 
   const handleSwapTeams = () => {
@@ -307,6 +331,45 @@ const ScheduleManagement = () => {
       setTeamBSearch(tempSearch);
     }
   };
+
+  const handleStatusChange = async (matchId, newStatus) => {
+    try {
+      setUpdatingStatus(matchId);
+      const response = await axios.patch(`${API_URL}/api/schedule/${matchId}/status`, 
+        { status: newStatus }, 
+        { withCredentials: true }
+      );
+      
+      // Update only the specific match in the state
+      setMatches(prevMatches => 
+        prevMatches.map(match => 
+          match._id === matchId ? response.data : match
+        )
+      );
+      
+      setToast({ message: 'Status updated successfully!', type: 'success' });
+      setStatusDropdown(null);
+    } catch (error) {
+      setToast({ message: 'Failed to update status', type: 'error' });
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Live':
+        return { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', color: '#4ade80' };
+      case 'Completed':
+        return { bg: 'rgba(234, 179, 8, 0.15)', border: 'rgba(234, 179, 8, 0.3)', color: '#eab308' };
+      case 'Cancelled':
+        return { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', color: '#ff6b6b' };
+      default: // Scheduled
+        return { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', color: '#60a5fa' };
+    }
+  };
+
+  const statusOptions = ['Scheduled', 'Live', 'Completed', 'Cancelled'];
 
   if (loading) {
     return (
@@ -446,7 +509,9 @@ const ScheduleManagement = () => {
                   border: '1px solid rgba(255, 215, 0, 0.2)',
                   padding: '1.5rem',
                   transition: 'all 0.3s',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  position: 'relative',
+                  zIndex: statusDropdown === match._id ? 200 : 1
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
@@ -502,8 +567,36 @@ const ScheduleManagement = () => {
                     marginBottom: '0.5rem'
                   }}>
                     <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '0.25rem' }}>Team 1</div>
-                    <div style={{ color: '#fff', fontSize: '0.95rem', fontWeight: '500' }}>
-                      {getTeamFullName(match.teamA)}
+                    <div style={{ 
+                      color: '#fff', 
+                      fontSize: '0.95rem', 
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span>{getTeamFullName(match.teamA)}</span>
+                      {match.status === 'Completed' && match.result?.winner && 
+                       match.result.winner._id === match.teamA._id && (
+                        <span style={{
+                          padding: '0.25rem 0.625rem',
+                          background: 'rgba(255, 215, 0, 0.2)',
+                          border: '1px solid rgba(255, 215, 0, 0.4)',
+                          borderRadius: '0.375rem',
+                          color: '#FFD700',
+                          fontSize: '0.7rem',
+                          fontWeight: '700',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                          </svg>
+                          Winner
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={{ 
@@ -521,8 +614,36 @@ const ScheduleManagement = () => {
                     borderRadius: '0.5rem'
                   }}>
                     <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '0.25rem' }}>Team 2</div>
-                    <div style={{ color: '#fff', fontSize: '0.95rem', fontWeight: '500' }}>
-                      {getTeamFullName(match.teamB)}
+                    <div style={{ 
+                      color: '#fff', 
+                      fontSize: '0.95rem', 
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span>{getTeamFullName(match.teamB)}</span>
+                      {match.status === 'Completed' && match.result?.winner && 
+                       match.result.winner._id === match.teamB._id && (
+                        <span style={{
+                          padding: '0.25rem 0.625rem',
+                          background: 'rgba(255, 215, 0, 0.2)',
+                          border: '1px solid rgba(255, 215, 0, 0.4)',
+                          borderRadius: '0.375rem',
+                          color: '#FFD700',
+                          fontSize: '0.7rem',
+                          fontWeight: '700',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                          </svg>
+                          Winner
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -577,7 +698,9 @@ const ScheduleManagement = () => {
                   display: 'flex', 
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '1rem'
+                  marginBottom: '1rem',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
                 }}>
                   <span style={{
                     padding: '0.4rem 0.875rem',
@@ -590,23 +713,103 @@ const ScheduleManagement = () => {
                   }}>
                     {match.round}
                   </span>
-                  <span style={{
-                    padding: '0.4rem 0.875rem',
-                    background: match.status === 'Completed' ? 'rgba(34, 197, 94, 0.15)' : 
-                               match.status === 'Live' ? 'rgba(239, 68, 68, 0.15)' : 
-                               'rgba(59, 130, 246, 0.15)',
-                    border: `1px solid ${match.status === 'Completed' ? 'rgba(34, 197, 94, 0.3)' : 
-                                          match.status === 'Live' ? 'rgba(239, 68, 68, 0.3)' : 
-                                          'rgba(59, 130, 246, 0.3)'}`,
-                    borderRadius: '0.5rem',
-                    color: match.status === 'Completed' ? '#4ade80' : 
-                           match.status === 'Live' ? '#ff6b6b' : 
-                           '#60a5fa',
-                    fontSize: '0.85rem',
-                    fontWeight: '600'
-                  }}>
-                    {match.status}
-                  </span>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <div style={{ position: 'relative' }}>
+                      <span 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!updatingStatus) {
+                            setStatusDropdown(statusDropdown === match._id ? null : match._id);
+                          }
+                        }}
+                        style={{
+                          padding: '0.4rem 0.875rem',
+                          background: getStatusColor(match.status).bg,
+                          border: `1px solid ${getStatusColor(match.status).border}`,
+                          borderRadius: '0.5rem',
+                          color: getStatusColor(match.status).color,
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          cursor: updatingStatus === match._id ? 'wait' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s',
+                          opacity: updatingStatus === match._id ? 0.6 : 1
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!updatingStatus) {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      >
+                        {updatingStatus === match._id ? (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                              <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="15"></circle>
+                            </svg>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            {match.status}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </>
+                        )}
+                      </span>
+                      {statusDropdown === match._id && !updatingStatus && (
+                        <div 
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: 0,
+                            marginTop: '0.5rem',
+                            background: '#1a1a1a',
+                            border: '1px solid rgba(255, 215, 0, 0.3)',
+                            borderRadius: '0.5rem',
+                            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.8)',
+                            zIndex: 1000,
+                            minWidth: '140px',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {statusOptions.map((status) => (
+                            <div
+                              key={status}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusChange(match._id, status);
+                              }}
+                              style={{
+                                padding: '0.75rem 1rem',
+                                color: getStatusColor(status).color,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                background: match.status === status ? getStatusColor(status).bg : 'transparent',
+                                borderLeft: match.status === status ? `3px solid ${getStatusColor(status).color}` : '3px solid transparent'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = getStatusColor(status).bg;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = match.status === status ? getStatusColor(status).bg : 'transparent';
+                              }}
+                            >
+                              {status}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -822,12 +1025,40 @@ const ScheduleManagement = () => {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="Preliminary" style={{ background: '#1a1a1a', color: '#fff' }}>Preliminary</option>
-                      <option value="Quarter Final" style={{ background: '#1a1a1a', color: '#fff' }}>Quarter Final</option>
+                      <option value="League Stage" style={{ background: '#1a1a1a', color: '#fff' }}>League Stage</option>
                       <option value="Semi Final" style={{ background: '#1a1a1a', color: '#fff' }}>Semi Final</option>
                       <option value="Final" style={{ background: '#1a1a1a', color: '#fff' }}>Final</option>
                     </select>
                   </div>
+
+                  {/* Match Type (for Table Tennis) */}
+                  {formData.game && games.find(g => g._id === formData.game)?.name === 'Table Tennis' && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
+                        Match Type *
+                      </label>
+                      <select
+                        value={formData.matchType}
+                        onChange={(e) => setFormData({ ...formData, matchType: e.target.value })}
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem',
+                          background: '#1a1a1a',
+                          border: '1px solid rgba(255, 215, 0, 0.5)',
+                          borderRadius: '0.75rem',
+                          color: '#fff',
+                          fontSize: '0.95rem',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="" style={{ background: '#1a1a1a', color: '#888' }}>Select Match Type</option>
+                        <option value="Singles" style={{ background: '#1a1a1a', color: '#fff' }}>Singles</option>
+                        <option value="Doubles" style={{ background: '#1a1a1a', color: '#fff' }}>Doubles</option>
+                      </select>
+                    </div>
+                  )}
                   </div>
 
                   {/* Team 1 - Searchable Dropdown */}
@@ -1007,7 +1238,7 @@ const ScheduleManagement = () => {
                                     e.currentTarget.style.background = 'transparent';
                                   }}
                                 >
-                                  {team.hallId?.name || 'Unknown Hall'} (Team {team.teamName})
+                                  {getTeamFullName(team)}
                                 </div>
                               ))}
                               
@@ -1200,7 +1431,7 @@ const ScheduleManagement = () => {
                                     e.currentTarget.style.background = 'transparent';
                                   }}
                                 >
-                                  {team.hallId?.name || 'Unknown Hall'} (Team {team.teamName})
+                                  {getTeamFullName(team)}
                                 </div>
                               ))}
                               

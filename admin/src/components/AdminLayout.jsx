@@ -9,6 +9,7 @@ const AdminLayout = ({ children }) => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -131,6 +132,15 @@ const AdminLayout = ({ children }) => {
         </svg>
       )
     },
+    { 
+      path: '/scores', 
+      label: 'Score Management',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      )
+    },
   ];
 
   return (
@@ -180,21 +190,25 @@ const AdminLayout = ({ children }) => {
         borderRight: '1px solid rgba(255, 215, 0, 0.2)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.3s ease',
+        transition: 'width 0.3s ease, transform 0.3s ease',
         position: 'fixed',
         left: 0,
         top: 0,
         bottom: 0,
-        zIndex: 10,
+        zIndex: 1000,
         overflowY: 'auto',
-      }}>
+        transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+      }}
+      className="admin-sidebar"
+      >
         {/* Logo Section */}
-        <div style={{
+<div style={{
           padding: '2rem 1.5rem',
           borderBottom: '1px solid rgba(255, 215, 0, 0.1)',
           display: 'flex',
           alignItems: 'center',
           gap: '1rem',
+          position: 'relative',
         }}>
           <img 
             src="/logo.webp" 
@@ -207,7 +221,7 @@ const AdminLayout = ({ children }) => {
             }}
           />
           {!sidebarCollapsed && (
-            <div>
+            <div style={{ flex: 1 }}>
               <h1 style={{
                 fontSize: '1.25rem',
                 fontWeight: 'bold',
@@ -227,6 +241,28 @@ const AdminLayout = ({ children }) => {
               </p>
             </div>
           )}
+
+          {/* Close Button - Mobile Only */}
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              background: 'rgba(255, 215, 0, 0.1)',
+              border: '1px solid rgba(255, 215, 0, 0.3)',
+              borderRadius: '0.5rem',
+              padding: '0.5rem',
+              cursor: 'pointer',
+              color: '#FFD700',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            className="sidebar-close-btn"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -240,7 +276,10 @@ const AdminLayout = ({ children }) => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileMenuOpen(false);
+                }}
                 style={{
                   width: '100%',
                   padding: sidebarCollapsed ? '1rem' : '1rem 1.5rem',
@@ -382,7 +421,7 @@ const AdminLayout = ({ children }) => {
             </div>
           )}
           
-          {/* Collapse Button */}
+          {/* Collapse Button - Desktop Only */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             style={{
@@ -400,6 +439,7 @@ const AdminLayout = ({ children }) => {
               gap: '0.5rem',
               transition: 'all 0.3s',
             }}
+            className="collapse-btn"
           >
             {sidebarCollapsed ? '→' : '←'}
             {!sidebarCollapsed && ' Collapse'}
@@ -422,26 +462,51 @@ const AdminLayout = ({ children }) => {
           background: 'rgba(0, 0, 0, 0.4)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
-          padding: '1.5rem 2rem',
+          padding: '1rem 1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}>
+          {/* Hamburger Menu Button - Mobile Only */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              display: 'none',
+              background: 'rgba(255, 215, 0, 0.1)',
+              border: '1px solid rgba(255, 215, 0, 0.3)',
+              borderRadius: '0.5rem',
+              padding: '0.75rem',
+              cursor: 'pointer',
+              color: '#FFD700',
+            }}
+            className="hamburger-btn"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+
           <div>
             <h2 style={{
-              fontSize: '1.75rem',
+              fontSize: '1.5rem',
               fontWeight: 'bold',
               color: '#fff',
               margin: 0,
               marginBottom: '0.25rem',
-            }}>
+            }}
+            className="page-title"
+            >
               {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
             </h2>
             <p style={{
               fontSize: '0.875rem',
               color: '#888',
               margin: 0,
-            }}>
+            }}
+            className="welcome-text"
+            >
               Welcome back, Admin
             </p>
           </div>
@@ -450,12 +515,29 @@ const AdminLayout = ({ children }) => {
         {/* Content Area */}
         <div style={{
           flex: 1,
-          padding: '2rem',
+          padding: '1.5rem',
           overflowY: 'auto',
-        }}>
+        }}
+        className="content-area"
+        >
           {children}
         </div>
       </main>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 999,
+            display: 'none',
+          }}
+          className="mobile-overlay"
+        />
+      )}
 
       {/* Change Password Modal */}
       {showPasswordModal && (
@@ -824,6 +906,74 @@ const AdminLayout = ({ children }) => {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 1024px) {
+          .admin-sidebar {
+            transform: translateX(0) !important;
+          }
+          .hamburger-btn {
+            display: none !important;
+          }
+          .mobile-overlay {
+            display: none !important;
+          }
+        }
+
+        /* Tablet and Mobile Styles */
+        @media (max-width: 1023px) {
+          .admin-sidebar {
+            width: 280px !important;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+          }
+          
+          main {
+            margin-left: 0 !important;
+          }
+          
+          .hamburger-btn {
+            display: flex !important;
+          }
+          
+          .mobile-overlay {
+            display: block !important;
+          }
+          
+          .content-area {
+            padding: 1rem !important;
+          }
+          
+          .page-title {
+            font-size: 1.25rem !important;
+          }
+          
+          .welcome-text {
+            font-size: 0.75rem !important;
+          }
+
+          .collapse-btn {
+            display: none !important;
+          }
+
+          .sidebar-close-btn {
+            display: flex !important;
+          }
+        }
+
+        /* Mobile Specific */
+        @media (max-width: 640px) {
+          .content-area {
+            padding: 0.75rem !important;
+          }
+          
+          header {
+            padding: 0.75rem 1rem !important;
+          }
+          
+          .page-title {
+            font-size: 1.1rem !important;
+          }
         }
       `}</style>
     </div>

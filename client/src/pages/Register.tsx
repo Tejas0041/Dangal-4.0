@@ -31,7 +31,10 @@ interface RegistrationStatus {
   gameName: string;
   teamsRegistered: number;
   maxTeams: number;
-  teamNames: string[];
+  teamNames: Array<{
+    teamName: string;
+    secondTeamName?: string;
+  }>;
   canRegisterMore: boolean;
 }
 
@@ -43,6 +46,7 @@ export default function Register() {
   const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [teamName, setTeamName] = useState("");
+  const [secondTeamName, setSecondTeamName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [paymentScreenshot, setPaymentScreenshot] = useState<string>("");
   const [uploadingPayment, setUploadingPayment] = useState(false);
@@ -142,6 +146,7 @@ export default function Register() {
       const minPlayers = selectedGame.minPlayersPerTeam;
       setPlayers(Array(minPlayers).fill(''));
       setTeamName('');
+      setSecondTeamName('');
       setPaymentScreenshot('');
     }
   }, [selectedGame]);
@@ -244,6 +249,7 @@ export default function Register() {
         hallId: hall._id,
         gameId: selectedGame._id,
         teamName,
+        secondTeamName: secondTeamName || undefined,
         players: filledPlayers.map(name => ({ name })),
         paymentScreenshot
       });
@@ -260,6 +266,7 @@ export default function Register() {
       // Reset form
       setSelectedGame(null);
       setTeamName('');
+      setSecondTeamName('');
       setPlayers([]);
       setPaymentScreenshot('');
     } catch (error: any) {
@@ -310,12 +317,12 @@ export default function Register() {
     if (!status) return [];
     
     const maxTeams = status.maxTeams;
-    const registeredNames = status.teamNames;
+    const registeredTeamNames = status.teamNames.map(t => t.teamName);
     const allNames = Array.from({ length: maxTeams }, (_, i) => 
       String.fromCharCode(65 + i) // A, B, C, D...
     );
     
-    return allNames.filter(name => !registeredNames.includes(name));
+    return allNames.filter(name => !registeredTeamNames.includes(name));
   };
 
   // Particle Network Animation
@@ -576,12 +583,12 @@ export default function Register() {
                         </div>
                         {status.teamNames.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
-                            {status.teamNames.map((name) => (
+                            {status.teamNames.map((team, index) => (
                               <span
-                                key={name}
+                                key={`${team.teamName}-${index}`}
                                 className="text-sm px-3 py-1 bg-primary/20 text-primary rounded font-semibold"
                               >
-                                Team {name}
+                                {team.secondTeamName || `Team ${team.teamName}`}
                               </span>
                             ))}
                           </div>
@@ -716,10 +723,10 @@ export default function Register() {
                       </div>
 
                       <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Team Name Selection */}
+                        {/* Team A/B Selection */}
                         <div className="relative">
                           <label className="block text-sm font-bold uppercase tracking-wider text-primary mb-2">
-                            Team Name *
+                            Team A / B *
                           </label>
                           <select
                             value={teamName}
@@ -733,7 +740,7 @@ export default function Register() {
                               backgroundSize: '1.5em 1.5em',
                             }}
                           >
-                            <option value="" className="bg-black text-gray-400 py-3">Select Team Name</option>
+                            <option value="" className="bg-black text-gray-400 py-3">Select Team A/B</option>
                             {getAvailableTeamNames(selectedGame._id).map((name) => (
                               <option key={name} value={name} className="bg-black text-primary font-bold py-3">
                                 Team {name}
@@ -743,6 +750,23 @@ export default function Register() {
                           <p className="text-xs text-gray-500 mt-1">
                             Available teams based on max limit ({selectedGame.maxTeams} teams)
                           </p>
+                        </div>
+
+                        {/* Optional Team Name */}
+                        <div className="relative">
+                          <label className="block text-sm font-bold uppercase tracking-wider text-primary mb-2">
+                            Team Name <span className="text-gray-500 text-xs normal-case">(Optional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={secondTeamName}
+                            onChange={(e) => setSecondTeamName(e.target.value)}
+                            placeholder="Enter your team name (optional)"
+                            className="w-full bg-black/50 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-3 text-white font-medium placeholder:text-gray-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
+                          />
+                          {/* <p className="text-xs text-gray-500 mt-1">
+                            Give your team a custom name (e.g., "Thunder Warriors", "Phoenix Squad")
+                          </p> */}
                         </div>
 
                         {/* Players */}

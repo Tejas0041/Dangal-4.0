@@ -1,4 +1,19 @@
-const ConfirmDialog = ({ title, message, onConfirm, onCancel }) => {
+const ConfirmDialog = ({ 
+  title, 
+  message, 
+  onConfirm, 
+  onCancel, 
+  confirmText = 'Confirm',
+  confirmColor = '#FFD700',
+  icon = 'warning'
+}) => {
+  const iconColors = {
+    warning: { bg: 'rgba(255, 215, 0, 0.15)', border: 'rgba(255, 215, 0, 0.4)', stroke: '#FFD700' },
+    danger: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', stroke: '#ff6b6b' }
+  };
+
+  const currentIcon = iconColors[icon] || iconColors.warning;
+
   return (
     <>
       {/* Backdrop */}
@@ -24,7 +39,7 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }) => {
         width: '90%',
         maxWidth: '450px',
         background: 'rgba(26, 26, 26, 0.98)',
-        border: '1px solid rgba(239, 68, 68, 0.4)',
+        border: `1px solid ${currentIcon.border}`,
         borderRadius: '1rem',
         padding: '2rem',
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
@@ -35,18 +50,26 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }) => {
           width: '56px',
           height: '56px',
           margin: '0 auto 1.5rem',
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '2px solid rgba(239, 68, 68, 0.4)',
+          background: currentIcon.bg,
+          border: `2px solid ${currentIcon.border}`,
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
+          {icon === 'warning' ? (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={currentIcon.stroke} strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          ) : (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={currentIcon.stroke} strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          )}
         </div>
 
         {/* Title */}
@@ -104,26 +127,25 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }) => {
             style={{
               flex: 1,
               padding: '0.875rem',
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-              border: 'none',
+              background: `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.2)`,
+              border: `1px solid ${confirmColor === '#FFD700' ? 'rgba(255, 215, 0, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
               borderRadius: '0.75rem',
-              color: '#fff',
+              color: confirmColor,
               fontWeight: 'bold',
               cursor: 'pointer',
               fontSize: '0.95rem',
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
+              e.currentTarget.style.background = `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.3)`;
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
             }}
             onMouseLeave={(e) => {
+              e.currentTarget.style.background = `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.2)`;
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
             }}
           >
-            Delete
+            {confirmText}
           </button>
         </div>
       </div>
