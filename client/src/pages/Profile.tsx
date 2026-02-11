@@ -2,10 +2,165 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Loader2, User, CheckCircle2, ChevronDown, ChevronUp, UserCircle, X, Users } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
+
+// Animated Gradient Mesh Background
+function AnimatedMeshBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <motion.div
+        className="absolute top-0 left-0 w-[800px] h-[800px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%)",
+          filter: "blur(60px)",
+        }}
+        animate={{
+          x: [0, 100, -50, 0],
+          y: [0, -100, 50, 0],
+          scale: [1, 1.2, 0.9, 1],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%)",
+          filter: "blur(60px)",
+        }}
+        animate={{
+          x: [0, -80, 40, 0],
+          y: [0, 80, -40, 0],
+          scale: [1, 0.9, 1.1, 1],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute top-1/2 left-1/2 w-[700px] h-[700px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgba(255, 215, 0, 0.08) 0%, transparent 70%)",
+          filter: "blur(60px)",
+          transform: "translate(-50%, -50%)",
+        }}
+        animate={{
+          scale: [1, 1.3, 1],
+          rotate: [0, 180, 360],
+        }}
+        transition={{
+          duration: 25,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+    </div>
+  );
+}
+
+// Particle Network (No Mouse Interaction)
+function ParticleNetwork() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+    }> = [];
+
+    const particleCount = 50;
+    const maxDistance = 150;
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        radius: Math.random() * 2 + 1,
+      });
+    }
+
+    function animate() {
+      if (!ctx || !canvas) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle) => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 215, 0, 0.5)";
+        ctx.fill();
+      });
+
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < maxDistance) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${0.2 * (1 - distance / maxDistance)})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 pointer-events-none"
+      style={{ opacity: 0.4 }}
+    />
+  );
+}
 
 interface Game {
   _id: string;
@@ -120,12 +275,11 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      <div className="fixed inset-0 pointer-events-none">
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]"
-          animate={{ x: [0, 100, 0], y: [0, -50, 0], scale: [1, 1.2, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        />
+      {/* Global Animated Mesh Background */}
+      <div className="fixed inset-0 z-0">
+        <AnimatedMeshBackground />
+        <ParticleNetwork />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50" />
       </div>
 
       <div className="relative z-10">
