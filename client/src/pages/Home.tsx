@@ -58,56 +58,121 @@ const galleryImages = [
   "/gallery-image/DSC_1079.webp",
 ];
 
-const pastWinners = [
-  { 
-    name: "Wolfenden Hall", 
-    event: "Table Tennis (Men)", 
-    year: "2023", 
-    achievement: "Champions",
-    description: "In an exhilarating showcase of skill and precision, Wolfenden Hall triumphed in Men's Table Tennis at Dangal 2023. Their agile plays, strategic shots, and remarkable sportsmanship secured their well-deserved victory in a thrilling final match.",
-    image: "/winners-image/wolfenden.webp"
-  },
-  { 
-    name: "MacDonald Hall", 
-    event: "Kabaddi (Men)", 
-    year: "2023", 
-    achievement: "Champions",
-    description: "MacDonald Hall emerged victorious in the intense Kabaddi final, displaying exceptional teamwork and strategic prowess. Their dominant raids and solid defense secured the title in a thrilling match at Dangal 2023.",
-    image: "/winners-image/DSC_0263.webp"
-  },
-  { 
-    name: "MacDonald Hall", 
-    event: "Tug of War (Men)", 
-    year: "2023", 
-    achievement: "Champions",
-    description: "MacDonald Hall dominated the Tug of War competition, showcasing immense strength, coordination, and teamwork. Their unwavering determination and synchronized efforts led them to a resounding victory in the Men's Tug of War event at Dangal 2023.",
-    image: "/winners-image/tug.webp"
-  },
-  { 
-    name: "Sister Nivedita Hall", 
-    event: "Kabaddi (Women)", 
-    year: "2023", 
-    achievement: "Champions",
-    description: "Sister Nivedita Hall exhibited exceptional skills and teamwork in the Girls' Kabaddi final at Dangal 2023, securing a well-deserved victory. Their strategic raids and solid defense showcased their prowess, making them the champions in this thrilling and fiercely contested event.",
-    image: "/winners-image/DSC_0744.webp"
-  },
-  { 
-    name: "Pandya Hall", 
-    event: "Tug of War (Women)", 
-    year: "2023", 
-    achievement: "Champions",
-    description: "Pandya Hall showcased immense strength and unity in the Tug of War competition, securing a decisive victory. Their coordinated efforts and unwavering determination in the Women's Tug of War event at Dangal 2023 made them the deserving champions.",
-    image: "/winners-image/DSC_0754.webp"
-  },
-  { 
-    name: "Lt. Williams Hall", 
-    event: "Table Tennis (Women)", 
-    year: "2023", 
-    achievement: "Champions",
-    description: "In an impressive display of finesse and skill, Lt. Williams Hall emerged victorious in Girls' Table Tennis at Dangal 2023. The team exhibited exceptional control, strategic plays, and sportsmanship, securing a well-deserved win in an intense final match.",
-    image: "/winners-image/DSC_0768.webp"
-  },
-];
+// Past Winners Data - Organized by Dangal Edition
+interface Winner {
+  name: string;
+  event: string;
+  year: string;
+  achievement: string;
+  image: string;
+  description?: string;
+}
+
+const pastWinnersData: Record<"dangal1.0" | "dangal2.0" | "dangal3.0", Winner[]> = {
+  "dangal1.0": [
+    { 
+      name: "Wolfenden Hall", 
+      event: "Table Tennis (Men)", 
+      year: "2023", 
+      achievement: "Champions",
+      description: "In an exhilarating showcase of skill and precision, Wolfenden Hall triumphed in Men's Table Tennis at Dangal 2023. Their agile plays, strategic shots, and remarkable sportsmanship secured their well-deserved victory in a thrilling final match.",
+      image: "/winners-image/dangal1.0-2023/wolfenden.webp"
+    },
+    { 
+      name: "MacDonald Hall", 
+      event: "Kabaddi (Men)", 
+      year: "2023", 
+      achievement: "Champions",
+      description: "MacDonald Hall emerged victorious in the intense Kabaddi final, displaying exceptional teamwork and strategic prowess. Their dominant raids and solid defense secured the title in a thrilling match at Dangal 2023.",
+      image: "/winners-image/dangal1.0-2023/DSC_0263.webp"
+    },
+    { 
+      name: "MacDonald Hall", 
+      event: "Tug of War (Men)", 
+      year: "2023", 
+      achievement: "Champions",
+      description: "MacDonald Hall dominated the Tug of War competition, showcasing immense strength, coordination, and teamwork. Their unwavering determination and synchronized efforts led them to a resounding victory in the Men's Tug of War event at Dangal 2023.",
+      image: "/winners-image/dangal1.0-2023/tug.webp"
+    },
+    { 
+      name: "Sister Nivedita Hall", 
+      event: "Kabaddi (Women)", 
+      year: "2023", 
+      achievement: "Champions",
+      description: "Sister Nivedita Hall exhibited exceptional skills and teamwork in the Girls' Kabaddi final at Dangal 2023, securing a well-deserved victory. Their strategic raids and solid defense showcased their prowess, making them the champions in this thrilling and fiercely contested event.",
+      image: "/winners-image/dangal1.0-2023/DSC_0744.webp"
+    },
+    { 
+      name: "Pandya Hall", 
+      event: "Tug of War (Women)", 
+      year: "2023", 
+      achievement: "Champions",
+      description: "Pandya Hall showcased immense strength and unity in the Tug of War competition, securing a decisive victory. Their coordinated efforts and unwavering determination in the Women's Tug of War event at Dangal 2023 made them the deserving champions.",
+      image: "/winners-image/dangal1.0-2023/DSC_0754.webp"
+    },
+    { 
+      name: "Lt. Williams Hall", 
+      event: "Table Tennis (Women)", 
+      year: "2023", 
+      achievement: "Champions",
+      description: "In an impressive display of finesse and skill, Lt. Williams Hall emerged victorious in Girls' Table Tennis at Dangal 2023. The team exhibited exceptional control, strategic plays, and sportsmanship, securing a well-deserved win in an intense final match.",
+      image: "/winners-image/dangal1.0-2023/DSC_0768.webp"
+    },
+  ],
+  "dangal2.0": [
+    {
+      name: "MacDonald Hall",
+      event: "Kabaddi (Men)",
+      year: "2024",
+      achievement: "Champions",
+      image: "/winners-image/dangal2.0-2024/macdonaldhallkabaddiwinnersmen.jpeg"
+    },
+  ],
+  "dangal3.0": [
+    {
+      name: "Hostel 14",
+      event: "Tug of War (Men)",
+      year: "2025",
+      achievement: "Champions",
+      image: "/winners-image/dangal3.0-2025/hostel14tugofwarwinner-men.webp"
+    },
+    {
+      name: "Lt. Williams Hall",
+      event: "Table Tennis (Women)",
+      year: "2025",
+      achievement: "Champions",
+      image: "/winners-image/dangal3.0-2025/ltwilliamstabletenniswinnerwomen.jpeg"
+    },
+    {
+      name: "MacDonald Hall",
+      event: "Kabaddi (Men)",
+      year: "2025",
+      achievement: "Champions",
+      image: "/winners-image/dangal3.0-2025/macdonalhallkabaddiwinnermen.webp"
+    },
+    {
+      name: "Pandya Hall",
+      event: "Kabaddi (Women)",
+      year: "2025",
+      achievement: "Champions",
+      image: "/winners-image/dangal3.0-2025/pandyakabaddiwinnerwomen.jpeg"
+    },
+    {
+      name: "Pandya Hall",
+      event: "Tug of War (Women)",
+      year: "2025",
+      achievement: "Champions",
+      image: "/winners-image/dangal3.0-2025/pandyatugofwarwinnerwomen.jpeg"
+    },
+    {
+      name: "SEN Hall",
+      event: "Table Tennis (Men)",
+      year: "2025",
+      achievement: "Champions",
+      image: "/winners-image/dangal3.0-2025/sentabletenniswinner-mens.jpeg"
+    },
+  ]
+};
 
 // Animated Gradient Mesh Background
 function AnimatedMeshBackground() {
@@ -293,6 +358,29 @@ export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [eventSettings, setEventSettings] = useState<EventSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDangal, setSelectedDangal] = useState<"dangal3.0" | "dangal2.0" | "dangal1.0">("dangal3.0");
+  const tabContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Get current winners based on selected edition
+  const pastWinners = pastWinnersData[selectedDangal];
+  
+  // Get tab indicator position
+  const getTabIndicatorX = () => {
+    if (!tabContainerRef.current) return 0;
+    const containerWidth = tabContainerRef.current.offsetWidth;
+    const tabWidth = (containerWidth - 8) / 3; // 8px for padding (4px on each side)
+    
+    switch (selectedDangal) {
+      case "dangal3.0":
+        return 4; // 4px padding
+      case "dangal2.0":
+        return tabWidth + 4;
+      case "dangal1.0":
+        return (tabWidth * 2) + 4;
+      default:
+        return 4;
+    }
+  };
 
   // Embla Carousel for Winners
   const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -814,6 +902,7 @@ export default function Home() {
                 "/carousel-images/DSC_0029.webp",
                 "/carousel-images/DSC_0407.webp",
                 "/carousel-images/DSC_0124.webp",
+                "/carousel-images/WhatsApp Image 2026-02-11 at 10.16.45 AM.webp"
               ].map((img, idx) => (
                 <SwiperSlide key={idx}>
                   <div className="relative overflow-hidden rounded-lg border-2 border-white/20 bg-black/30 backdrop-blur-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] h-[300px] md:h-[400px]">
@@ -981,6 +1070,7 @@ export default function Home() {
               elementClassNames="masonry-gallery"
               selector=".gallery-item"
               subHtmlSelectorRelative={false}
+              licenseKey="0000-0000-000-0000"
             >
               <Masonry
                 breakpointCols={{
@@ -1062,6 +1152,7 @@ export default function Home() {
             download={false}
             elementClassNames="mobile-gallery"
             selector=".mobile-gallery-item"
+            licenseKey="0000-0000-000-0000"
           >
             <div className="grid grid-cols-2 gap-4">
               {galleryImages.map((src, idx) => (
@@ -1087,11 +1178,68 @@ export default function Home() {
       {/* --- PAST WINNERS SECTION --- */}
 <section id="winners" className="py-12 md:py-16 relative">
   <div className="container mx-auto px-6">
-    <div className="text-center mb-16">
+    <div className="text-center mb-8">
       <span className="text-primary font-bold tracking-[0.2em] uppercase text-sm">Legacy</span>
-      <h2 className="text-5xl md:text-6xl font-bold text-white mt-2">
-        LAST YEAR <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">WINNERS</span>
+      <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mt-2">
+        PAST <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">WINNERS</span>
       </h2>
+    </div>
+    
+    {/* Dangal Edition Selector - Mobile Optimized with Sliding Indicator */}
+    <div className="flex justify-center mb-12">
+      <div ref={tabContainerRef} className="relative inline-flex bg-black/40 backdrop-blur-md border border-white/20 rounded-xl p-1 w-full max-w-2xl">
+        {/* Sliding Background Indicator */}
+        <motion.div
+          className="absolute top-1 bottom-1 bg-primary rounded-lg shadow-lg shadow-primary/30 z-0"
+          style={{
+            width: tabContainerRef.current ? `${(tabContainerRef.current.offsetWidth - 8) / 3}px` : '33.333%',
+            left: '4px'
+          }}
+          animate={{
+            x: getTabIndicatorX() - 4
+          }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 500, 
+            damping: 40,
+            mass: 0.5
+          }}
+        />
+        
+        <button
+          onClick={() => setSelectedDangal("dangal3.0")}
+          className={`relative z-10 flex-1 px-3 md:px-6 py-2.5 md:py-3 rounded-lg font-bold text-xs md:text-sm uppercase tracking-wider transition-colors duration-200 ${
+            selectedDangal === "dangal3.0"
+              ? "text-black"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <span className="block md:inline">Dangal 3.0</span>
+          <span className="block md:inline md:ml-1 text-[10px] md:text-xs">(2025)</span>
+        </button>
+        <button
+          onClick={() => setSelectedDangal("dangal2.0")}
+          className={`relative z-10 flex-1 px-3 md:px-6 py-2.5 md:py-3 rounded-lg font-bold text-xs md:text-sm uppercase tracking-wider transition-colors duration-200 ${
+            selectedDangal === "dangal2.0"
+              ? "text-black"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <span className="block md:inline">Dangal 2.0</span>
+          <span className="block md:inline md:ml-1 text-[10px] md:text-xs">(2024)</span>
+        </button>
+        <button
+          onClick={() => setSelectedDangal("dangal1.0")}
+          className={`relative z-10 flex-1 px-3 md:px-6 py-2.5 md:py-3 rounded-lg font-bold text-xs md:text-sm uppercase tracking-wider transition-colors duration-200 ${
+            selectedDangal === "dangal1.0"
+              ? "text-black"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <span className="block md:inline">Dangal 1.0</span>
+          <span className="block md:inline md:ml-1 text-[10px] md:text-xs">(2023)</span>
+        </button>
+      </div>
     </div>
     
     {/* Preload all winner images */}
@@ -1101,83 +1249,99 @@ export default function Home() {
       ))}
     </div>
     
+    {/* Empty State */}
+    {pastWinners.length === 0 && (
+      <div className="text-center py-20">
+        <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12 max-w-2xl mx-auto">
+          <Trophy className="text-primary/50 mx-auto mb-6" size={64} />
+          <h3 className="text-xl md:text-2xl font-bold text-white mb-4">Coming Soon</h3>
+          <p className="text-gray-400 text-base md:text-lg">
+            Winners for this edition will be announced after the event concludes.
+          </p>
+        </div>
+      </div>
+    )}
+    
+    {/* Winners Carousel - Only show if there are winners */}
+    {pastWinners.length > 0 && (
     <div className="relative">
       {/* Embla Carousel */}
       <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex -ml-6">
+        <div className={`flex -ml-4 md:-ml-6 ${pastWinners.length < 3 ? 'justify-center' : ''}`}>
           {pastWinners.map((winner, idx) => (
             <div
               key={idx}
-              className="pl-6 flex-shrink-0 w-full sm:w-1/2 lg:w-1/3"
+              className={`pl-4 md:pl-6 flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 ${pastWinners.length < 3 ? 'lg:max-w-md' : ''}`}
             >
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-black/40 backdrop-blur-xl border border-white/20 rounded-xl hover:border-primary/50 transition-all group shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] overflow-hidden h-full"
-              >
+              <div className="bg-black/40 backdrop-blur-xl border border-white/20 rounded-xl hover:border-primary/50 transition-all group shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] overflow-hidden h-full">
                 {/* Winner Image */}
-                <div className="relative h-64 overflow-hidden">
+                <div className="relative h-48 md:h-64 overflow-hidden">
                   <img 
                     src={winner.image} 
                     alt={winner.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-                  <div className="absolute top-4 right-4 bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-full">
-                    <span className="text-black font-bold text-sm">{winner.year}</span>
+                  <div className="absolute top-3 right-3 md:top-4 md:right-4 bg-primary/90 backdrop-blur-sm px-3 py-1.5 md:px-4 md:py-2 rounded-full">
+                    <span className="text-black font-bold text-xs md:text-sm">{winner.year}</span>
                   </div>
                 </div>
                 
                 {/* Winner Info */}
-                <div className="p-6">
-                  <div className="flex items-start gap-4 mb-4">
-                    <Trophy className="text-primary flex-shrink-0 group-hover:rotate-12 transition-transform" size={32} />
+                <div className="p-4 md:p-6">
+                  <div className="flex items-start gap-3 md:gap-4 mb-3 md:mb-4">
+                    <Trophy className="text-primary flex-shrink-0 group-hover:rotate-12 transition-transform" size={28} />
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-1">{winner.name}</h3>
-                      <p className="text-primary font-display tracking-widest uppercase text-sm">
+                      <h3 className="text-lg md:text-xl font-bold text-white mb-1 leading-tight">{winner.name}</h3>
+                      <p className="text-primary font-display tracking-widest uppercase text-xs md:text-sm">
                         {winner.event}
                       </p>
                     </div>
                   </div>
                   
-                  <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                    {winner.description}
-                  </p>
+                  {winner.description && (
+                    <p className="text-gray-400 text-xs md:text-sm leading-relaxed mb-3 md:mb-4 line-clamp-3">
+                      {winner.description}
+                    </p>
+                  )}
                   
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <span className="text-xs text-gray-500 uppercase tracking-wider">
+                  <div className="flex items-center justify-between pt-3 md:pt-4 border-t border-white/10">
+                    <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">
                       {winner.achievement}
                     </span>
-                    <div className="w-8 h-1 bg-primary rounded-full" />
+                    <div className="w-6 md:w-8 h-1 bg-primary rounded-full" />
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Navigation Buttons */}
-      <button
-        onClick={scrollPrev}
-        className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-primary/20 backdrop-blur-md border-2 border-primary/40 items-center justify-center text-primary hover:bg-primary/40 hover:scale-110 hover:border-primary/60 transition-all z-10 shadow-[0_0_25px_rgba(255,215,0,0.4)]"
-        aria-label="Previous"
-        style={{marginLeft: '-65px'}}
-      >
-        <ChevronLeft size={28} strokeWidth={2.5} />
-      </button>
+      {/* Navigation Buttons - Only show if more than 3 winners */}
+      {pastWinners.length > 3 && (
+        <>
+          <button
+            onClick={scrollPrev}
+            className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 xl:w-14 xl:h-14 rounded-full bg-primary/20 backdrop-blur-md border-2 border-primary/40 items-center justify-center text-primary hover:bg-primary/40 hover:scale-110 hover:border-primary/60 transition-all z-10 shadow-[0_0_25px_rgba(255,215,0,0.4)]"
+            aria-label="Previous"
+            style={{marginLeft: '-50px'}}
+          >
+            <ChevronLeft size={24} strokeWidth={2.5} className="xl:w-7 xl:h-7" />
+          </button>
 
-      <button
-        onClick={scrollNext}
-        className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-primary/20 backdrop-blur-md border-2 border-primary/40 items-center justify-center text-primary hover:bg-primary/40 hover:scale-110 hover:border-primary/60 transition-all z-10 shadow-[0_0_25px_rgba(255,215,0,0.4)]"
-        aria-label="Next"
-        style={{marginRight: '-65px'}}
-      >
-        <ChevronRight size={28} strokeWidth={2.5} />
-      </button>
+          <button
+            onClick={scrollNext}
+            className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 xl:w-14 xl:h-14 rounded-full bg-primary/20 backdrop-blur-md border-2 border-primary/40 items-center justify-center text-primary hover:bg-primary/40 hover:scale-110 hover:border-primary/60 transition-all z-10 shadow-[0_0_25px_rgba(255,215,0,0.4)]"
+            aria-label="Next"
+            style={{marginRight: '-50px'}}
+          >
+            <ChevronRight size={24} strokeWidth={2.5} className="xl:w-7 xl:h-7" />
+          </button>
+        </>
+      )}
     </div>
+    )}
   </div>
   </section>
 

@@ -431,3 +431,15 @@
     0 0 40px rgba(255, 215, 0, 0.4),
     0 2px 4px rgba(0, 0, 0, 0.8);
 }
+
+/* Hide LightGallery License Warning */
+.lg-css3 .lg-item.lg-complete .lg-img-wrap::before,
+.lg-css3 .lg-item.lg-complete .lg-img-wrap::after {
+  display: none !important;
+}
+
+/* Suppress console warnings visually if they appear in DOM */
+[class*="lg-license"],
+[class*="lightgallery-license"] {
+  display: none !important;
+}
