@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import ConfirmDialog from '../components/ConfirmDialog';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const Registrations = () => {
+const Teams = () => {
   const [teams, setTeams] = useState([]);
   const [halls, setHalls] = useState([]);
   const [games, setGames] = useState([]);
@@ -13,17 +12,12 @@ const Registrations = () => {
   const [error, setError] = useState(null);
   const [selectedHall, setSelectedHall] = useState('all');
   const [selectedGame, setSelectedGame] = useState('all');
-  const [selectedTeamName, setSelectedTeamName] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hallSearchQuery, setHallSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showHallDropdown, setShowHallDropdown] = useState(false);
   const [showGameDropdown, setShowGameDropdown] = useState(false);
-  const [showTeamNameDropdown, setShowTeamNameDropdown] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [teamToDelete, setTeamToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -34,26 +28,18 @@ const Registrations = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Fetching data with cookies (withCredentials)');
-
       const [teamsRes, hallsRes, gamesRes] = await Promise.all([
         axios.get(`${API_URL}/api/teams/all`, { withCredentials: true }),
         axios.get(`${API_URL}/api/halls/all`, { withCredentials: true }),
         axios.get(`${API_URL}/api/games`, { withCredentials: true }),
       ]);
 
-      console.log('Teams response:', teamsRes.data);
-      console.log('Halls response:', hallsRes.data);
-      console.log('Games response:', gamesRes.data);
-
       setTeams(teamsRes.data);
       setHalls(hallsRes.data);
       setGames(gamesRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      setError(error.response?.data?.message || 'Failed to fetch registration data');
+      setError(error.response?.data?.message || 'Failed to fetch teams data');
     } finally {
       setLoading(false);
     }
@@ -77,74 +63,29 @@ const Registrations = () => {
     return hall?.name || 'All Halls / Hostels';
   };
 
-  const filteredHalls = halls.filter(hall => 
-    hall.name.toLowerCase().includes(hallSearchQuery.toLowerCase())
-  );
-
   const getSelectedGameName = () => {
     if (selectedGame === 'all') return 'All Events';
     const game = games.find(g => g._id === selectedGame);
     return game?.name || 'All Events';
   };
 
-  const getSelectedTeamNameLabel = () => {
-    if (selectedTeamName === 'all') return 'All Teams';
-    return `Team ${selectedTeamName}`;
-  };
+  const filteredHalls = halls.filter(hall => 
+    hall.name.toLowerCase().includes(hallSearchQuery.toLowerCase())
+  );
 
   const filteredTeams = teams.filter(team => {
     const hallMatch = selectedHall === 'all' || team.hallId?._id === selectedHall;
     const gameMatch = selectedGame === 'all' || team.gameId?._id === selectedGame;
-    const teamNameMatch = selectedTeamName === 'all' || team.teamName === selectedTeamName;
     const searchMatch = searchQuery === '' || 
       team.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       getHallName(team.hallId).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      getGameName(team.gameId).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.players.some(player => player.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    return hallMatch && gameMatch && teamNameMatch && searchMatch;
+      getGameName(team.gameId).toLowerCase().includes(searchQuery.toLowerCase());
+    return hallMatch && gameMatch && searchMatch;
   });
 
   const viewTeamDetails = (team) => {
     setSelectedTeam(team);
     setShowTeamModal(true);
-  };
-
-  const handleDeleteClick = (team) => {
-    setTeamToDelete(team);
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!teamToDelete) return;
-    
-    try {
-      setDeleting(true);
-      await axios.delete(`${API_URL}/api/teams/${teamToDelete._id}`, { withCredentials: true });
-      
-      // Refresh data
-      await fetchData();
-      
-      setShowDeleteConfirm(false);
-      setTeamToDelete(null);
-    } catch (error) {
-      console.error('Error deleting team:', error);
-      alert(error.response?.data?.message || 'Failed to delete team');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const highlightText = (text, query) => {
-    if (!query || !text) return text;
-    
-    const parts = text.toString().split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, index) => 
-      part.toLowerCase() === query.toLowerCase() ? (
-        <span key={index} style={{ background: 'rgba(255, 215, 0, 0.3)', color: '#FFD700', fontWeight: 'bold' }}>
-          {part}
-        </span>
-      ) : part
-    );
   };
 
   if (loading) {
@@ -161,7 +102,7 @@ const Registrations = () => {
               animation: 'spin 1s linear infinite',
               margin: '0 auto 1rem',
             }} />
-            <p style={{ color: '#888' }}>Loading registrations...</p>
+            <p style={{ color: '#888' }}>Loading teams...</p>
           </div>
         </div>
       </AdminLayout>
@@ -180,11 +121,6 @@ const Registrations = () => {
             textAlign: 'center',
             maxWidth: '500px',
           }}>
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" style={{ margin: '0 auto 1rem' }}>
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="15" y1="9" x2="9" y2="15"></line>
-              <line x1="9" y1="9" x2="15" y2="15"></line>
-            </svg>
             <h3 style={{ color: '#ef4444', marginBottom: '0.5rem', fontSize: '1.25rem' }}>Error Loading Data</h3>
             <p style={{ color: '#888', marginBottom: '1.5rem' }}>{error}</p>
             <button
@@ -211,63 +147,12 @@ const Registrations = () => {
   return (
     <AdminLayout>
       <div>
-        {/* Header Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{
-            background: 'rgba(255, 215, 0, 0.1)',
-            border: '1px solid rgba(255, 215, 0, 0.3)',
-            borderRadius: '1rem',
-            padding: '1.5rem',
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '0.5rem' }}>
-              {teams.length}
-            </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Total Teams
-            </div>
-          </div>
-
-          <div style={{
-            background: 'rgba(34, 197, 94, 0.1)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            borderRadius: '1rem',
-            padding: '1.5rem',
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#22c55e', marginBottom: '0.5rem' }}>
-              {halls.length}
-            </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Participating Halls
-            </div>
-          </div>
-
-          <div style={{
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            borderRadius: '1rem',
-            padding: '1.5rem',
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6', marginBottom: '0.5rem' }}>
-              {games.length}
-            </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Active Events
-            </div>
-          </div>
-
-          <div style={{
-            background: 'rgba(168, 85, 247, 0.1)',
-            border: '1px solid rgba(168, 85, 247, 0.3)',
-            borderRadius: '1rem',
-            padding: '1.5rem',
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#a855f7', marginBottom: '0.5rem' }}>
-              {teams.reduce((sum, team) => sum + team.players.length, 0)}
-            </div>
-            <div style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Total Players
-            </div>
-          </div>
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ color: '#FFD700', fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+            Teams List
+          </h1>
+          <p style={{ color: '#888' }}>View all registered teams</p>
         </div>
 
         {/* Filters */}
@@ -295,7 +180,7 @@ const Registrations = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by team, hall, event, or player..."
+                  placeholder="Search by team, hall, or event..."
                   style={{
                     width: '100%',
                     padding: '0.75rem 0.75rem 0.75rem 2.5rem',
@@ -330,7 +215,7 @@ const Registrations = () => {
               </div>
             </div>
 
-            {/* Hall Filter */}
+            {/* Hall Filter with Search */}
             <div>
               <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                 Hall/Hostel
@@ -340,7 +225,6 @@ const Registrations = () => {
                   onClick={() => {
                     setShowHallDropdown(!showHallDropdown);
                     setShowGameDropdown(false);
-                    setShowTeamNameDropdown(false);
                   }}
                   style={{
                     width: '100%',
@@ -449,7 +333,6 @@ const Registrations = () => {
                         </div>
                       </div>
                       
-                      {/* All Halls Option */}
                       <div
                         onClick={() => {
                           setSelectedHall('all');
@@ -473,7 +356,6 @@ const Registrations = () => {
                         All Halls / Hostels
                       </div>
                       
-                      {/* Filtered Halls */}
                       {filteredHalls.length === 0 ? (
                         <div style={{ padding: '1rem', textAlign: 'center', color: '#888', fontSize: '0.875rem' }}>
                           No halls / hostels found
@@ -634,135 +516,10 @@ const Registrations = () => {
                 )}
               </div>
             </div>
-
-            {/* Team Name Filter */}
-            <div>
-              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                Team Name
-              </label>
-              <div style={{ position: 'relative', zIndex: showTeamNameDropdown ? 102 : 1 }}>
-                <button
-                  onClick={() => {
-                    setShowTeamNameDropdown(!showTeamNameDropdown);
-                    setShowHallDropdown(false);
-                    setShowGameDropdown(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    paddingRight: '2.5rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 215, 0, 0.3)',
-                    borderRadius: '0.5rem',
-                    color: '#fff',
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    outline: 'none',
-                    position: 'relative',
-                    zIndex: 102,
-                  }}
-                >
-                  {getSelectedTeamNameLabel()}
-                </button>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#FFD700"
-                  strokeWidth="2"
-                  style={{
-                    position: 'absolute',
-                    right: '0.75rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none',
-                    zIndex: 103,
-                  }}
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-                
-                {showTeamNameDropdown && (
-                  <>
-                    <div
-                      style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 100,
-                      }}
-                      onClick={() => setShowTeamNameDropdown(false)}
-                    />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 0.5rem)',
-                        left: 0,
-                        right: 0,
-                        background: '#1a1a1a',
-                        border: '1px solid rgba(255, 215, 0, 0.3)',
-                        borderRadius: '0.5rem',
-                        maxHeight: '300px',
-                        overflowY: 'auto',
-                        zIndex: 101,
-                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-                      }}
-                    >
-                      <div
-                        onClick={() => {
-                          setSelectedTeamName('all');
-                          setShowTeamNameDropdown(false);
-                        }}
-                        style={{
-                          padding: '0.75rem 1rem',
-                          cursor: 'pointer',
-                          color: selectedTeamName === 'all' ? '#FFD700' : '#fff',
-                          background: selectedTeamName === 'all' ? 'rgba(255, 215, 0, 0.1)' : 'transparent',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (selectedTeamName !== 'all') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedTeamName !== 'all') e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
-                        All Teams
-                      </div>
-                      {['A', 'B'].map(teamName => (
-                        <div
-                          key={teamName}
-                          onClick={() => {
-                            setSelectedTeamName(teamName);
-                            setShowTeamNameDropdown(false);
-                          }}
-                          style={{
-                            padding: '0.75rem 1rem',
-                            cursor: 'pointer',
-                            color: selectedTeamName === teamName ? '#FFD700' : '#fff',
-                            background: selectedTeamName === teamName ? 'rgba(255, 215, 0, 0.1)' : 'transparent',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (selectedTeamName !== teamName) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                          }}
-                          onMouseLeave={(e) => {
-                            if (selectedTeamName !== teamName) e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                          Team {teamName}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Teams Table */}
+        {/* Teams List */}
         <div style={{
           background: 'rgba(0, 0, 0, 0.4)',
           backdropFilter: 'blur(20px)',
@@ -772,7 +529,7 @@ const Registrations = () => {
         }}>
           <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
             <h3 style={{ color: '#FFD700', fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>
-              Registered Teams ({filteredTeams.length})
+              All Teams ({filteredTeams.length})
             </h3>
           </div>
 
@@ -787,96 +544,82 @@ const Registrations = () => {
               <p>No teams found with the selected filters</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255, 215, 0, 0.1)', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Hall/Hostel</th>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Team Name</th>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Event</th>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem' }}>Players</th>
-                    <th style={{ padding: '1rem', textAlign: 'center', color: '#FFD700', fontWeight: '600', fontSize: '0.9rem', width: '200px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTeams.map((team, index) => (
-                    <tr
-                      key={team._id}
-                      style={{
-                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                        transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '1rem', color: '#ccc' }}>
-                        {highlightText(getHallName(team.hallId), searchQuery)}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#fff', fontWeight: '500' }}>
-                        Team {highlightText(team.teamName, searchQuery)}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#ccc' }}>
-                        {highlightText(getGameName(team.gameId), searchQuery)}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#ccc' }}>
-                        {team.players.length} players
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <button
-                            onClick={() => viewTeamDetails(team)}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              background: 'rgba(255, 215, 0, 0.2)',
-                              border: '1px solid rgba(255, 215, 0, 0.4)',
-                              borderRadius: '0.5rem',
-                              color: '#FFD700',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(team)}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              background: 'rgba(239, 68, 68, 0.2)',
-                              border: '1px solid rgba(239, 68, 68, 0.4)',
-                              borderRadius: '0.5rem',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                          >
-                            Delete
-                          </button>
+            <div style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {filteredTeams.map((team, index) => (
+                  <div
+                    key={team._id}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 215, 0, 0.2)',
+                      borderRadius: '0.75rem',
+                      padding: '1rem 1.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 215, 0, 0.2)',
+                        border: '2px solid rgba(255, 215, 0, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFD700',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem',
+                      }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: '#fff', fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
+                          {getGameName(team.gameId)} - {getHallName(team.hallId)} (Team {team.teamName})
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <div style={{ color: '#888', fontSize: '0.85rem' }}>
+                          {team.players.length} players
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => viewTeamDetails(team)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: 'rgba(255, 215, 0, 0.2)',
+                        border: '1px solid rgba(255, 215, 0, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#FFD700',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1032,19 +775,6 @@ const Registrations = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && teamToDelete && (
-        <ConfirmDialog
-          title="Delete Team Registration?"
-          message={`Are you sure you want to delete Team ${teamToDelete.teamName} from ${getHallName(teamToDelete.hallId)} for ${getGameName(teamToDelete.gameId)}? This action cannot be undone.`}
-          onConfirm={confirmDelete}
-          onCancel={() => {
-            setShowDeleteConfirm(false);
-            setTeamToDelete(null);
-          }}
-        />
-      )}
-
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -1055,4 +785,4 @@ const Registrations = () => {
   );
 };
 
-export default Registrations;
+export default Teams;
