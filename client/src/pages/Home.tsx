@@ -360,6 +360,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [selectedDangal, setSelectedDangal] = useState<"dangal3.0" | "dangal2.0" | "dangal1.0">("dangal3.0");
   const tabContainerRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
   // Get current winners based on selected edition
   const pastWinners = pastWinnersData[selectedDangal];
@@ -1120,60 +1121,75 @@ export default function Home() {
 
       {/* Mobile Gallery Modal */}
       <div id="mobile-gallery-modal" className="hidden fixed inset-0 bg-black z-[9999] overflow-y-auto">
-        <div className="min-h-screen p-4">
+        <div className="min-h-screen p-4 pb-20 pt-[4.5rem]">
+          {/* Close Button - Fixed at top with margin to avoid navbar */}
+          <div className="sticky top-[4rem] z-10 flex justify-between items-center mb-4 pt-2 pb-4 bg-gradient-to-b from-black via-black to-transparent">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">DANGAL <span className="text-primary">GALLERY</span></h2>
+            <button
+              onClick={() => {
+                const gallerySection = document.getElementById('mobile-gallery-modal');
+                if (gallerySection) {
+                  gallerySection.classList.add('hidden');
+                  document.body.style.overflow = 'auto';
+                }
+              }}
+              className="w-12 h-12 bg-primary backdrop-blur-md border-2 border-black rounded-full flex items-center justify-center hover:bg-yellow-500 transition-all shadow-lg flex-shrink-0"
+              style={{ boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          {/* All Images - Clickable Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {galleryImages.map((src, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedImage(src)}
+                className="relative block overflow-hidden rounded-lg border-2 border-white/10 bg-black/20 cursor-pointer active:scale-95 transition-transform"
+              >
+                <img 
+                  src={src} 
+                  alt=""
+                  loading="lazy"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Full View Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black z-[10000] flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
           {/* Close Button */}
           <button
-            onClick={() => {
-              const gallerySection = document.getElementById('mobile-gallery-modal');
-              if (gallerySection) {
-                gallerySection.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-              }
-            }}
-            className="fixed top-4 right-4 z-[10000] w-12 h-12 bg-primary/20 backdrop-blur-md border border-primary rounded-full flex items-center justify-center hover:bg-primary/30 transition-all"
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-4 right-4 z-[10001] w-14 h-14 bg-primary backdrop-blur-md border-2 border-black rounded-full flex items-center justify-center hover:bg-yellow-500 transition-all shadow-lg"
+            style={{ boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)' }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
 
-          {/* Gallery Title */}
-          <div className="text-center mb-8 pt-16">
-            <h2 className="text-3xl font-bold text-white">DANGAL <span className="text-primary">GALLERY</span></h2>
-          </div>
-
-          {/* All Images */}
-          <LightGallery
-            speed={500}
-            plugins={[lgZoom, lgThumbnail]}
-            mode="lg-slide-skew-only"
-            thumbnail={true}
-            download={false}
-            elementClassNames="mobile-gallery"
-            selector=".mobile-gallery-item"
-            licenseKey="0000-0000-000-0000"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              {galleryImages.map((src, idx) => (
-                <a
-                  key={idx}
-                  href={src}
-                  data-sub-html=""
-                  className="mobile-gallery-item relative block overflow-hidden rounded-lg border-2 border-white/10 bg-black/20"
-                >
-                  <img 
-                    src={src} 
-                    alt=""
-                    loading="lazy"
-                    className="w-full h-auto object-cover"
-                  />
-                </a>
-              ))}
-            </div>
-          </LightGallery>
+          {/* Full Size Image */}
+          <img 
+            src={selectedImage} 
+            alt="Full view"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
-      </div>
+      )}
 
       {/* --- PAST WINNERS SECTION --- */}
 <section id="winners" className="py-12 md:py-16 relative">
