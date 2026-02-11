@@ -826,7 +826,7 @@ export default function Home() {
             >
               <div className="relative group overflow-hidden rounded-xl border-2 border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
                 <img 
-                  src="/Hall.webp" 
+                  src="/1000430706.webp" 
                   alt="MacDonald Hall"
                   className="w-full h-[400px] md:h-[500px] object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
