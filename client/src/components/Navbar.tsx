@@ -357,7 +357,13 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
                       <UserCircle size={18} /> View Profile
                     </button>
                     <button 
-                      onClick={handleLogoutClick}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        // Small delay to allow sidebar to close before showing confirmation
+                        setTimeout(() => {
+                          handleLogoutClick();
+                        }, 300);
+                      }}
                       className="w-full py-4 bg-red-600/80 text-white font-bold uppercase tracking-widest text-sm rounded-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2"
                     >
                       <LogOut size={18} /> Logout
