@@ -14,6 +14,10 @@ const eventSettingsSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    registrationOpen: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -17,12 +17,14 @@ router.get('/settings', async (req, res) => {
         eventDate: new Date('2026-02-16T00:00:00'),
         eventName: 'Dangal 4.0',
         isActive: true,
+        registrationOpen: false,
       });
     }
 
     res.json({
       eventDate: settings.eventDate,
       eventName: settings.eventName,
+      registrationOpen: settings.registrationOpen || false,
     });
   } catch (error) {
     console.error('Get event settings error:', error);
@@ -58,6 +60,7 @@ router.put('/settings', authenticateAdmin, async (req, res) => {
         eventDate: date,
         eventName: eventName || 'Dangal 4.0',
         isActive: true,
+        registrationOpen: false,
       });
     }
 
@@ -65,9 +68,39 @@ router.put('/settings', authenticateAdmin, async (req, res) => {
       message: 'Event settings updated successfully',
       eventDate: settings.eventDate,
       eventName: settings.eventName,
+      registrationOpen: settings.registrationOpen || false,
     });
   } catch (error) {
     console.error('Update event settings error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/event/registration/toggle
+// @desc    Toggle registration open/closed
+// @access  Private (Admin)
+router.post('/registration/toggle', authenticateAdmin, async (req, res) => {
+  try {
+    let settings = await EventSettings.findOne({ isActive: true });
+
+    if (!settings) {
+      settings = await EventSettings.create({
+        eventDate: new Date('2026-02-16T00:00:00'),
+        eventName: 'Dangal 4.0',
+        isActive: true,
+        registrationOpen: true,
+      });
+    } else {
+      settings.registrationOpen = !settings.registrationOpen;
+      await settings.save();
+    }
+
+    res.json({
+      message: `Registration ${settings.registrationOpen ? 'opened' : 'closed'} successfully`,
+      registrationOpen: settings.registrationOpen,
+    });
+  } catch (error) {
+    console.error('Toggle registration error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
