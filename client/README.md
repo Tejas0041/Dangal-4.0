@@ -1,6 +1,6 @@
-# Dangal 4.0 - MacDonald Hall
+# Dangal 4.0 - Macdonald Hall
 
-A modern, visually stunning React web app for the college fest "Dangal 4.0" organized by MacDonald Hall.
+A modern, visually stunning React web app for the college fest "Dangal 4.0" organized by Macdonald Hall.
 
 ## Features
 
@@ -85,7 +85,7 @@ client/
 ### Hero Section
 - Split layout with dramatic typography
 - Live countdown timer to event date (Feb 16, 2026)
-- Animated MacDonald Hall lion logo
+- Animated Macdonald Hall lion logo
 - Floating particles effect
 
 ### About Section
@@ -145,4 +145,4 @@ MIT
 
 ## Credits
 
-Designed and developed for MacDonald Hall's Dangal 4.0 fest.
+Designed and developed for Macdonald Hall's Dangal 4.0 fest.

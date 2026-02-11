@@ -79,19 +79,19 @@ const pastWinnersData: Record<"dangal1.0" | "dangal2.0" | "dangal3.0", Winner[]>
       image: "/winners-image/dangal1.0-2023/wolfenden.webp"
     },
     { 
-      name: "MacDonald Hall", 
+      name: "Macdonald Hall", 
       event: "Kabaddi (Men)", 
       year: "2023", 
       achievement: "Champions",
-      description: "MacDonald Hall emerged victorious in the intense Kabaddi final, displaying exceptional teamwork and strategic prowess. Their dominant raids and solid defense secured the title in a thrilling match at Dangal 2023.",
+      description: "Macdonald Hall emerged victorious in the intense Kabaddi final, displaying exceptional teamwork and strategic prowess. Their dominant raids and solid defense secured the title in a thrilling match at Dangal 2023.",
       image: "/winners-image/dangal1.0-2023/DSC_0263.webp"
     },
     { 
-      name: "MacDonald Hall", 
+      name: "Macdonald Hall", 
       event: "Tug of War (Men)", 
       year: "2023", 
       achievement: "Champions",
-      description: "MacDonald Hall dominated the Tug of War competition, showcasing immense strength, coordination, and teamwork. Their unwavering determination and synchronized efforts led them to a resounding victory in the Men's Tug of War event at Dangal 2023.",
+      description: "Macdonald Hall dominated the Tug of War competition, showcasing immense strength, coordination, and teamwork. Their unwavering determination and synchronized efforts led them to a resounding victory in the Men's Tug of War event at Dangal 2023.",
       image: "/winners-image/dangal1.0-2023/tug.webp"
     },
     { 
@@ -121,7 +121,7 @@ const pastWinnersData: Record<"dangal1.0" | "dangal2.0" | "dangal3.0", Winner[]>
   ],
   "dangal2.0": [
     {
-      name: "MacDonald Hall",
+      name: "Macdonald Hall",
       event: "Kabaddi (Men)",
       year: "2024",
       achievement: "Champions",
@@ -144,7 +144,7 @@ const pastWinnersData: Record<"dangal1.0" | "dangal2.0" | "dangal3.0", Winner[]>
       image: "/winners-image/dangal3.0-2025/ltwilliamstabletenniswinnerwomen.jpeg"
     },
     {
-      name: "MacDonald Hall",
+      name: "Macdonald Hall",
       event: "Kabaddi (Men)",
       year: "2025",
       achievement: "Champions",
@@ -665,7 +665,7 @@ export default function Home() {
             >
               <img 
                 src={lionLogo} 
-                alt="MacDonald Hall Lion" 
+                alt="Macdonald Hall Lion" 
                 className="w-full max-w-lg md:max-w-2xl object-contain drop-shadow-[0_0_30px_rgba(255,215,0,0.3)] filter brightness-110 relative z-10"
               />
               
@@ -718,7 +718,7 @@ export default function Home() {
             >
               <h2 className="text-5xl font-bold text-white mb-6">UNLEASH THE <span className="text-primary">BEAST</span></h2>
               <p className="text-gray-400 text-lg leading-relaxed mb-6">
-                Dangal 4.0 is not just a fest; it's a battleground where legends are forged. Hosted by the prestigious MacDonald Hall, this event brings together the fiercest competitors from across the nation.
+                Dangal 4.0 is not just a fest; it's a battleground where legends are forged. Hosted by the prestigious Macdonald Hall, this event brings together the fiercest competitors from across the nation.
               </p>
               <p className="text-gray-400 text-lg leading-relaxed">
                 Experience the adrenaline of Kabaddi, the raw power of Tug of War, and the precision of Table Tennis. Step in, prove your worth, and take home the glory.
@@ -827,7 +827,7 @@ export default function Home() {
               <div className="relative group overflow-hidden rounded-xl border-2 border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
                 <img 
                   src="/1000430706.webp" 
-                  alt="MacDonald Hall"
+                  alt="Macdonald Hall"
                   className="w-full h-[400px] md:h-[500px] object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

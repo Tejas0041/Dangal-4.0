@@ -43,19 +43,8 @@ const HallManagement = () => {
     try {
       const response = await axios.get(`${API_URL}/api/halls/all`, { withCredentials: true });
       setHalls(response.data);
-      
-      // Fetch teams for each hall
-      const teamsData = {};
-      for (const hall of response.data) {
-        try {
-          const teamsResponse = await axios.get(`${API_URL}/api/teams/hall/${hall._id}`, { withCredentials: true });
-          teamsData[hall._id] = teamsResponse.data;
-        } catch (error) {
-          console.error(`Error fetching teams for hall ${hall._id}:`, error);
-          teamsData[hall._id] = [];
-        }
-      }
-      setHallTeams(teamsData);
+      // Note: Team data is fetched separately when needed, not here
+      setHallTeams({});
     } catch (error) {
       console.error('Fetch halls error:', error);
       setError('Failed to fetch halls');
@@ -1100,7 +1089,7 @@ const HallManagement = () => {
                     fontSize: '1rem',
                     outline: 'none'
                   }}
-                  placeholder="e.g., MacDonald Hall"
+                  placeholder="e.g., Macdonald Hall"
                 />
               </div>
 

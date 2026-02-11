@@ -7,6 +7,7 @@ import UserManagement from './pages/UserManagement';
 import HallManagement from './pages/HallManagement';
 import Registrations from './pages/Registrations';
 import Teams from './pages/Teams';
+import ScheduleManagement from './pages/ScheduleManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -60,6 +61,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <HallManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/schedule"
+            element={
+              <ProtectedRoute>
+                <ScheduleManagement />
               </ProtectedRoute>
             }
           />

@@ -1,6 +1,6 @@
-# Dangal 4.0 - MacDonald Hall
+# Dangal 4.0 - Macdonald Hall
 
-A modern, visually stunning React web app for the college fest "Dangal 4.0" organized by MacDonald Hall.
+A modern, visually stunning React web app for the college fest "Dangal 4.0" organized by Macdonald Hall.
 
 ## Project Structure
 

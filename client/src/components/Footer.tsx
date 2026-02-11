@@ -16,7 +16,7 @@ export function Footer() {
               <h2 className="text-2xl font-bold font-display text-white tracking-widest">DANGAL 4.0</h2>
             </div>
             <p className="text-muted-foreground text-sm max-w-md leading-relaxed">
-              The ultimate battle of talent, strength, and spirit. MacDonald Hall invites you to witness history in the making. Are you ready for the glory?
+              The ultimate battle of talent, strength, and spirit. Macdonald Hall invites you to witness history in the making. Are you ready for the glory?
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export function Footer() {
               </a>
             </div>
             <p className="text-xs text-muted-foreground mt-4">
-              MacDonald Hall, IIEST Shibpur
+              Macdonald Hall, IIEST Shibpur
             </p>
           </div>
         </div>

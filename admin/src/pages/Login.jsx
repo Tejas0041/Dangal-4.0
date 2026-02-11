@@ -94,7 +94,7 @@ const Login = () => {
                 color: '#fff',
                 fontSize: '1rem',
               }}
-              placeholder="admin@dangal"
+              placeholder="username"
             />
           </div>
 

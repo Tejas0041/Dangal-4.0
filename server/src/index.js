@@ -21,6 +21,7 @@ import hallRoutes from './routes/hall.js';
 import uploadRoutes from './routes/upload.js';
 import gameRoutes from './routes/game.js';
 import teamRoutes from './routes/team.js';
+import scheduleRoutes from './routes/schedule.js';
 
 // Initialize Express app
 const app = express();
@@ -78,6 +79,7 @@ app.use('/api/halls', hallRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/schedule', scheduleRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
