@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const scheduleSchema = new mongoose.Schema({
+  matchNumber: {
+    type: Number,
+    required: true,
+    unique: true
+  },
   game: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Game',

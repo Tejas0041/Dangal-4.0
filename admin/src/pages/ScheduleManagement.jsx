@@ -3,6 +3,8 @@ import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
 import { DatePicker, TimePicker, ConfigProvider } from 'antd';
 import dayjs from 'dayjs';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -17,13 +19,14 @@ const ScheduleManagement = () => {
   const [editingMatch, setEditingMatch] = useState(null);
   const [formData, setFormData] = useState({
     game: '',
+    round: 'Preliminary',
     teamA: '',
     teamB: '',
     date: null,
     time: null,
     venue: '',
-    round: 'Preliminary',
-    status: 'Scheduled'
+    status: 'Scheduled',
+    matchNumber: null
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -31,6 +34,9 @@ const ScheduleManagement = () => {
   const [teamBSearch, setTeamBSearch] = useState('');
   const [showTeamADropdown, setShowTeamADropdown] = useState(false);
   const [showTeamBDropdown, setShowTeamBDropdown] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [matchToDelete, setMatchToDelete] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -62,44 +68,64 @@ const ScheduleManagement = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Validate required fields
+    if (!formData.date) {
+      setToast({ message: 'Please select a date', type: 'error' });
+      return;
+    }
+    if (!formData.time) {
+      setToast({ message: 'Please select a time', type: 'error' });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const submitData = {
         ...formData,
-        date: formData.date ? formData.date.format('YYYY-MM-DD') : '',
-        time: formData.time ? formData.time.format('HH:mm') : ''
+        date: formData.date.format('YYYY-MM-DD'),
+        time: formData.time.format('HH:mm')
       };
 
       if (editingMatch) {
         await axios.put(`${API_URL}/api/schedule/${editingMatch._id}`, submitData, { withCredentials: true });
-        setSuccess('Match updated successfully');
+        setToast({ message: 'Match updated successfully!', type: 'success' });
       } else {
         await axios.post(`${API_URL}/api/schedule`, submitData, { withCredentials: true });
-        setSuccess('Match created successfully');
+        setToast({ message: 'Match created successfully!', type: 'success' });
       }
 
       fetchData();
       resetForm();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to save match');
+      setToast({ message: error.response?.data?.message || 'Failed to save match', type: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this match?')) return;
+    setMatchToDelete(id);
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDelete = async () => {
     try {
-      await axios.delete(`${API_URL}/api/schedule/${id}`, { withCredentials: true });
-      setSuccess('Match deleted successfully');
+      await axios.delete(`${API_URL}/api/schedule/${matchToDelete}`, { withCredentials: true });
+      setToast({ message: 'Match deleted successfully!', type: 'success' });
       fetchData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      setError('Failed to delete match');
+      setToast({ message: 'Failed to delete match', type: 'error' });
+    } finally {
+      setShowDeleteConfirm(false);
+      setMatchToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setMatchToDelete(null);
   };
 
   const handleEdit = (match) => {
@@ -107,13 +133,14 @@ const ScheduleManagement = () => {
     const selectedGame = games.find(g => g._id === match.game._id);
     setFormData({
       game: match.game._id,
+      round: match.round,
       teamA: match.teamA._id,
       teamB: match.teamB._id,
       date: match.date ? dayjs(match.date) : null,
       time: match.time ? dayjs(match.time, 'HH:mm') : null,
       venue: selectedGame?.venue || match.venue,
-      round: match.round,
-      status: match.status
+      status: match.status,
+      matchNumber: match.matchNumber
     });
     // Set the team names for display
     setTeamASearch(getTeamFullName(match.teamA));
@@ -124,13 +151,14 @@ const ScheduleManagement = () => {
   const resetForm = () => {
     setFormData({
       game: '',
+      round: 'Preliminary',
       teamA: '',
       teamB: '',
       date: null,
       time: null,
       venue: '',
-      round: 'Preliminary',
-      status: 'Scheduled'
+      status: 'Scheduled',
+      matchNumber: null
     });
     setTeamASearch('');
     setTeamBSearch('');
@@ -144,18 +172,71 @@ const ScheduleManagement = () => {
     return teams.filter(team => team.gameId?._id === gameId || team.gameId === gameId);
   };
 
+  const getAvailableTeams = (gameId, excludeMatchId = null, currentRound = 'Preliminary') => {
+    // Get all teams for this game
+    const gameTeams = getTeamsByGame(gameId);
+    
+    // Get all team IDs that are already in matches (excluding current match being edited)
+    // Only filter by same round if it's Preliminary
+    const usedTeamIds = matches
+      .filter(match => {
+        // Exclude the current match being edited
+        if (excludeMatchId && match._id === excludeMatchId) {
+          return false;
+        }
+        // Only consider matches for the same game
+        if (match.game._id !== gameId && match.game !== gameId) {
+          return false;
+        }
+        // If current round is Preliminary, only exclude teams from Preliminary matches
+        // For other rounds, teams are available regardless of previous rounds
+        if (currentRound === 'Preliminary') {
+          return match.round === 'Preliminary';
+        }
+        return false; // For non-Preliminary rounds, don't exclude any teams
+      })
+      .flatMap(match => [match.teamA._id || match.teamA, match.teamB._id || match.teamB]);
+    
+    // Filter out teams that are already used
+    return gameTeams.filter(team => !usedTeamIds.includes(team._id));
+  };
+
   const getFilteredTeamsA = () => {
-    const gameTeams = getTeamsByGame(formData.game);
-    if (!teamASearch) return gameTeams;
-    return gameTeams.filter(team => 
+    let availableTeams = getAvailableTeams(formData.game, editingMatch?._id, formData.round);
+    
+    // If Team A is currently selected, include it in the list
+    if (formData.teamA) {
+      const selectedTeam = teams.find(t => t._id === formData.teamA);
+      if (selectedTeam && !availableTeams.find(t => t._id === formData.teamA)) {
+        availableTeams = [...availableTeams, selectedTeam];
+      }
+    }
+    
+    // Exclude Team B if it's selected
+    availableTeams = availableTeams.filter(team => team._id !== formData.teamB);
+    
+    if (!teamASearch) return availableTeams;
+    return availableTeams.filter(team => 
       `${team.hallId?.name || ''} ${team.teamName}`.toLowerCase().includes(teamASearch.toLowerCase())
     );
   };
 
   const getFilteredTeamsB = () => {
-    const gameTeams = getTeamsByGame(formData.game).filter(team => team._id !== formData.teamA);
-    if (!teamBSearch) return gameTeams;
-    return gameTeams.filter(team => 
+    let availableTeams = getAvailableTeams(formData.game, editingMatch?._id, formData.round);
+    
+    // If Team B is currently selected, include it in the list
+    if (formData.teamB) {
+      const selectedTeam = teams.find(t => t._id === formData.teamB);
+      if (selectedTeam && !availableTeams.find(t => t._id === formData.teamB)) {
+        availableTeams = [...availableTeams, selectedTeam];
+      }
+    }
+    
+    // Exclude Team A if it's selected
+    availableTeams = availableTeams.filter(team => team._id !== formData.teamA);
+    
+    if (!teamBSearch) return availableTeams;
+    return availableTeams.filter(team => 
       `${team.hallId?.name || ''} ${team.teamName}`.toLowerCase().includes(teamBSearch.toLowerCase())
     );
   };
@@ -377,21 +458,38 @@ const ScheduleManagement = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                {/* Event Name */}
+                {/* Match Number & Event Name */}
                 <div style={{ 
-                  fontSize: '1.25rem', 
-                  fontWeight: 'bold', 
-                  color: '#FFD700',
-                  marginBottom: '1rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem'
+                  justifyContent: 'space-between',
+                  marginBottom: '1rem'
                 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
-                  </svg>
-                  {match.game.name}
+                  <div style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold', 
+                    color: '#FFD700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                    </svg>
+                    {match.game.name}
+                  </div>
+                  <div style={{
+                    padding: '0.4rem 0.875rem',
+                    background: 'rgba(255, 215, 0, 0.15)',
+                    border: '1px solid rgba(255, 215, 0, 0.3)',
+                    borderRadius: '0.5rem',
+                    color: '#FFD700',
+                    fontSize: '0.85rem',
+                    fontWeight: '700'
+                  }}>
+                    Match {String(match.matchNumber).padStart(2, '0')}
+                  </div>
                 </div>
 
                 {/* Teams */}
@@ -603,25 +701,73 @@ const ScheduleManagement = () => {
               width: '100%',
               maxWidth: '600px',
               maxHeight: '90vh',
-              overflowY: 'auto'
-            }}>
-              <h2 style={{ 
-                color: '#FFD700', 
-                marginBottom: '2rem',
-                fontSize: '1.75rem',
-                fontWeight: 'bold',
+              overflowY: 'auto',
+              position: 'relative'
+            }}
+            className="schedule-modal-content"
+            >
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem'
+                justifyContent: 'space-between',
+                marginBottom: '2rem'
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                {editingMatch ? 'Edit Match' : 'Create New Match'}
-              </h2>
+                <h2 style={{ 
+                  color: '#FFD700', 
+                  fontSize: '1.75rem',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  margin: 0
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  {editingMatch ? 'Edit Match' : 'Create New Match'}
+                </h2>
+                {editingMatch ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label style={{ color: '#FFD700', fontSize: '0.85rem', fontWeight: '600' }}>Match #</label>
+                    <input
+                      type="number"
+                      value={formData.matchNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, matchNumber: parseInt(e.target.value) || null })}
+                      min="1"
+                      required
+                      className="match-number-input"
+                      style={{
+                        width: '70px',
+                        padding: '0.5rem 0.75rem',
+                        background: 'transparent',
+                        border: '2px solid #FFD700',
+                        borderRadius: '0.75rem',
+                        color: '#FFD700',
+                        fontSize: '0.9rem',
+                        fontWeight: '700',
+                        textAlign: 'center',
+                        outline: 'none',
+                        boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '0.5rem 1rem',
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    borderRadius: '0.75rem',
+                    color: '#000',
+                    fontSize: '0.9rem',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)'
+                  }}>
+                    Match {String(matches.length + 1).padStart(2, '0')}
+                  </div>
+                )}
+              </div>
 
               <form onSubmit={handleSubmit}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }}>
@@ -651,6 +797,36 @@ const ScheduleManagement = () => {
                         <option key={game._id} value={game._id} style={{ background: '#1a1a1a', color: '#fff' }}>{game.name}</option>
                       ))}
                     </select>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                  {/* Round */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
+                      Round *
+                    </label>
+                    <select
+                      value={formData.round}
+                      onChange={(e) => setFormData({ ...formData, round: e.target.value, teamA: '', teamB: '' })}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '0.875rem',
+                        background: '#1a1a1a',
+                        border: '1px solid rgba(255, 215, 0, 0.5)',
+                        borderRadius: '0.75rem',
+                        color: '#fff',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="Preliminary" style={{ background: '#1a1a1a', color: '#fff' }}>Preliminary</option>
+                      <option value="Quarter Final" style={{ background: '#1a1a1a', color: '#fff' }}>Quarter Final</option>
+                      <option value="Semi Final" style={{ background: '#1a1a1a', color: '#fff' }}>Semi Final</option>
+                      <option value="Final" style={{ background: '#1a1a1a', color: '#fff' }}>Final</option>
+                    </select>
+                  </div>
                   </div>
 
                   {/* Team 1 - Searchable Dropdown */}
@@ -1151,10 +1327,12 @@ const ScheduleManagement = () => {
                         value={formData.time}
                         onChange={(time) => setFormData({ ...formData, time })}
                         format="HH:mm"
-                        placeholder="--:-- --"
+                        placeholder="Select time"
                         style={{ width: '100%' }}
                         popupClassName="custom-antd-picker"
                         minuteStep={1}
+                        showNow={false}
+                        needConfirm={false}
                       />
                     </ConfigProvider>
                   </div>
@@ -1184,35 +1362,6 @@ const ScheduleManagement = () => {
                     />
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                  {/* Round */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
-                      Round *
-                    </label>
-                    <select
-                      value={formData.round}
-                      onChange={(e) => setFormData({ ...formData, round: e.target.value })}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '0.875rem',
-                        background: '#1a1a1a',
-                        border: '1px solid rgba(255, 215, 0, 0.5)',
-                        borderRadius: '0.75rem',
-                        color: '#fff',
-                        fontSize: '0.95rem',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="Preliminary" style={{ background: '#1a1a1a', color: '#fff' }}>Preliminary</option>
-                      <option value="Quarter Final" style={{ background: '#1a1a1a', color: '#fff' }}>Quarter Final</option>
-                      <option value="Semi Final" style={{ background: '#1a1a1a', color: '#fff' }}>Semi Final</option>
-                      <option value="Final" style={{ background: '#1a1a1a', color: '#fff' }}>Final</option>
-                    </select>
-                  </div>
-
                   {/* Status */}
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
@@ -1239,7 +1388,6 @@ const ScheduleManagement = () => {
                       <option value="Completed" style={{ background: '#1a1a1a', color: '#fff' }}>Completed</option>
                       <option value="Cancelled" style={{ background: '#1a1a1a', color: '#fff' }}>Cancelled</option>
                     </select>
-                  </div>
                   </div>
                 </div>
 
@@ -1489,7 +1637,62 @@ const ScheduleManagement = () => {
         .ant-picker-time-panel-column::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 215, 0, 0.5);
         }
+
+        /* Modal Scrollbar Styling */
+        .schedule-modal-content::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .schedule-modal-content::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 0 1.5rem 1.5rem 0;
+          margin: 1rem 0;
+        }
+
+        .schedule-modal-content::-webkit-scrollbar-thumb {
+          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+          border-radius: 10px;
+        }
+
+        .schedule-modal-content::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(135deg, #FFA500 0%, #FFD700 100%);
+        }
+
+        .schedule-modal-content {
+          scrollbar-width: thin;
+          scrollbar-color: #FFD700 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Remove number input arrows */
+        .match-number-input::-webkit-outer-spin-button,
+        .match-number-input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        .match-number-input[type=number] {
+          -moz-appearance: textfield;
+        }
       `}</style>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete Match"
+          message="Are you sure you want to delete this match? This action cannot be undone."
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </AdminLayout>
   );
 };

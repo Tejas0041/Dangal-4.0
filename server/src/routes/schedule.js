@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
         }
       })
       .populate('result.winner', 'teamName')
-      .sort({ date: 1, time: 1 });
+      .sort({ matchNumber: 1 });
     
     res.json(matches);
   } catch (error) {
@@ -79,7 +79,12 @@ router.post('/', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Teams must be different' });
     }
 
+    // Get the highest match number and increment
+    const lastMatch = await Schedule.findOne().sort({ matchNumber: -1 });
+    const matchNumber = lastMatch ? lastMatch.matchNumber + 1 : 1;
+
     const match = new Schedule({
+      matchNumber,
       game,
       teamA,
       teamB,
@@ -121,16 +126,27 @@ router.post('/', authenticateAdmin, async (req, res) => {
 // Update match (Admin only)
 router.put('/:id', authenticateAdmin, async (req, res) => {
   try {
-    const { game, teamA, teamB, date, time, venue, round, status, result } = req.body;
+    const { game, teamA, teamB, date, time, venue, round, status, result, matchNumber } = req.body;
 
     // Validate teams are different
     if (teamA === teamB) {
       return res.status(400).json({ message: 'Teams must be different' });
     }
 
+    // If matchNumber is being updated, check for duplicates
+    if (matchNumber !== undefined) {
+      const existingMatch = await Schedule.findOne({ 
+        matchNumber, 
+        _id: { $ne: req.params.id } 
+      });
+      if (existingMatch) {
+        return res.status(400).json({ message: 'Match number already exists' });
+      }
+    }
+
     const match = await Schedule.findByIdAndUpdate(
       req.params.id,
-      { game, teamA, teamB, date, time, venue, round, status, result },
+      { game, teamA, teamB, date, time, venue, round, status, result, matchNumber },
       { new: true, runValidators: true }
     )
       .populate('game', 'name venue')
@@ -201,7 +217,7 @@ router.get('/game/:gameId', async (req, res) => {
         }
       })
       .populate('result.winner', 'teamName')
-      .sort({ date: 1, time: 1 });
+      .sort({ matchNumber: 1 });
     
     res.json(matches);
   } catch (error) {
@@ -241,7 +257,7 @@ router.get('/date/:date', async (req, res) => {
         }
       })
       .populate('result.winner', 'teamName')
-      .sort({ time: 1 });
+      .sort({ matchNumber: 1 });
     
     res.json(matches);
   } catch (error) {

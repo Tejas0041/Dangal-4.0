@@ -467,16 +467,29 @@ export default function Register() {
               >
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent"></div>
                 <div className="space-y-8 text-center py-8">
-                  <div className="space-y-4">
-                    <p className="text-white text-lg font-semibold">
-                      Only JMCR of respective hall / hostel can register for events
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      (Use G Suite ID only)
-                    </p>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <p className="text-white text-lg font-semibold">
+                        Only JMCR of respective hall / hostel can register for events
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        (Use G Suite ID only)
+                      </p>
+                    </div>
+                    
+                    {/* Registration Coming Soon Message */}
+                    <div className="py-8 px-6 bg-primary/10 border border-primary/30 rounded-xl">
+                      <p className="text-primary text-2xl font-bold mb-2">
+                        Registration Will Start Soon
+                      </p>
+                      <p className="text-gray-300 text-sm">
+                        Stay tuned for updates
+                      </p>
+                    </div>
                   </div>
                   
-                  <motion.button
+                  {/* Commented out Google Sign-in Button */}
+                  {/* <motion.button
                     onClick={login}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -489,7 +502,7 @@ export default function Register() {
                       <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
                     Sign in with Google
-                  </motion.button>
+                  </motion.button> */}
                 </div>
               </motion.div>
             ) : !hall ? (
