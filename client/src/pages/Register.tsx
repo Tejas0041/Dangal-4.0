@@ -975,7 +975,7 @@ export default function Register() {
                                           <Upload className="text-primary" size={40} />
                                         </div>
                                         <span className="block text-white font-bold text-lg mb-2">Click to upload payment screenshot</span>
-                                        <span className="text-gray-400 text-sm">PNG, JPG, JPEG, WebP up to 5MB</span>
+                                        <span className="text-gray-400 text-sm">PNG, JPG, JPEG, WebP up to 1MB</span>
                                       </div>
                                     )}
                                   </label>
