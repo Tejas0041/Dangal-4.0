@@ -5,7 +5,8 @@ const ConfirmDialog = ({
   onCancel, 
   confirmText = 'Confirm',
   confirmColor = '#FFD700',
-  icon = 'warning'
+  icon = 'warning',
+  loading = false
 }) => {
   const iconColors = {
     warning: { bg: 'rgba(255, 215, 0, 0.15)', border: 'rgba(255, 215, 0, 0.4)', stroke: '#FFD700' },
@@ -124,28 +125,49 @@ const ConfirmDialog = ({
           </button>
           <button
             onClick={onConfirm}
+            disabled={loading}
             style={{
               flex: 1,
               padding: '0.875rem',
-              background: `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.2)`,
-              border: `1px solid ${confirmColor === '#FFD700' ? 'rgba(255, 215, 0, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+              background: loading ? 'rgba(128, 128, 128, 0.2)' : `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.2)`,
+              border: loading ? '1px solid rgba(128, 128, 128, 0.4)' : `1px solid ${confirmColor === '#FFD700' ? 'rgba(255, 215, 0, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
               borderRadius: '0.75rem',
-              color: confirmColor,
+              color: loading ? '#888' : confirmColor,
               fontWeight: 'bold',
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               fontSize: '0.95rem',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.3)`;
-              e.currentTarget.style.transform = 'translateY(-2px)';
+              if (!loading) {
+                e.currentTarget.style.background = `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.3)`;
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.2)`;
-              e.currentTarget.style.transform = 'translateY(0)';
+              if (!loading) {
+                e.currentTarget.style.background = `rgba(${confirmColor === '#FFD700' ? '255, 215, 0' : '239, 68, 68'}, 0.2)`;
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
             }}
           >
-            {confirmText}
+            {loading && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+              </svg>
+            )}
+            {loading ? 'Deleting...' : confirmText}
           </button>
         </div>
       </div>
@@ -164,6 +186,10 @@ const ConfirmDialog = ({
             transform: translate(-50%, -50%) scale(1);
             opacity: 1;
           }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </>

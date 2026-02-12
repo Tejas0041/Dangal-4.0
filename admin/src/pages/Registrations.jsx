@@ -26,6 +26,8 @@ const Registrations = () => {
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [selectedTeams, setSelectedTeams] = useState([]);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -148,6 +150,55 @@ const Registrations = () => {
     } catch (error) {
       console.error('Error deleting team:', error);
       alert(error.response?.data?.message || 'Failed to delete team');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSelectTeam = (teamId) => {
+    setSelectedTeams(prev => {
+      if (prev.includes(teamId)) {
+        return prev.filter(id => id !== teamId);
+      } else {
+        return [...prev, teamId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTeams.length === filteredTeams.length) {
+      setSelectedTeams([]);
+    } else {
+      setSelectedTeams(filteredTeams.map(team => team._id));
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedTeams.length === 0) return;
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedTeams.length === 0) return;
+    
+    try {
+      setDeleting(true);
+      
+      // Delete all selected teams
+      await Promise.all(
+        selectedTeams.map(teamId =>
+          axios.delete(`${API_URL}/api/teams/${teamId}`, { withCredentials: true })
+        )
+      );
+      
+      // Refresh data
+      await fetchData();
+      
+      setShowBulkDeleteConfirm(false);
+      setSelectedTeams([]);
+    } catch (error) {
+      console.error('Error deleting teams:', error);
+      alert(error.response?.data?.message || 'Failed to delete teams');
     } finally {
       setDeleting(false);
     }
@@ -776,10 +827,43 @@ const Registrations = () => {
           borderRadius: '1rem',
           overflow: 'hidden',
         }}>
-          <div style={{ padding: isMobile ? '1rem' : '1.5rem', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
+          <div style={{ padding: isMobile ? '1rem' : '1.5rem', borderBottom: '1px solid rgba(255, 215, 0, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <h3 style={{ color: '#FFD700', fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: '600', margin: 0 }}>
               Registered Teams ({filteredTeams.length})
             </h3>
+            {selectedTeams.length > 0 && (
+              <button
+                onClick={handleBulkDeleteClick}
+                style={{
+                  padding: isMobile ? '0.5rem 1rem' : '0.6rem 1.25rem',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '0.5rem',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Delete Selected ({selectedTeams.length})
+              </button>
+            )}
           </div>
 
           {filteredTeams.length === 0 ? (
@@ -826,6 +910,19 @@ const Registrations = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '900px' : 'auto' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255, 215, 0, 0.1)', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
+                      <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'center', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', width: '50px' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedTeams.length === filteredTeams.length && filteredTeams.length > 0}
+                          onChange={handleSelectAll}
+                          style={{
+                            width: '18px',
+                            height: '18px',
+                            cursor: 'pointer',
+                            accentColor: '#FFD700',
+                          }}
+                        />
+                      </th>
                       <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Hall/Hostel</th>
                       <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Team Name</th>
                       <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Event</th>
@@ -840,10 +937,34 @@ const Registrations = () => {
                         style={{
                           borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                           transition: 'background 0.2s',
+                          background: selectedTeams.includes(team._id) ? 'rgba(255, 215, 0, 0.08)' : 'transparent',
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        onMouseEnter={(e) => {
+                          if (!selectedTeams.includes(team._id)) {
+                            e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!selectedTeams.includes(team._id)) {
+                            e.currentTarget.style.background = 'transparent';
+                          } else {
+                            e.currentTarget.style.background = 'rgba(255, 215, 0, 0.08)';
+                          }
+                        }}
                       >
+                        <td style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedTeams.includes(team._id)}
+                            onChange={() => handleSelectTeam(team._id)}
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              cursor: 'pointer',
+                              accentColor: '#FFD700',
+                            }}
+                          />
+                        </td>
                         <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#ccc', fontSize: isMobile ? '0.85rem' : '1rem', whiteSpace: 'nowrap' }}>
                           {highlightText(getHallName(team.hallId), searchQuery)}
                         </td>
@@ -1083,6 +1204,24 @@ const Registrations = () => {
             setShowDeleteConfirm(false);
             setTeamToDelete(null);
           }}
+          loading={deleting}
+          confirmText="Delete"
+          confirmColor="#ef4444"
+          icon="danger"
+        />
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete Multiple Registrations?"
+          message={`Are you sure you want to delete ${selectedTeams.length} team registration${selectedTeams.length > 1 ? 's' : ''}? This action cannot be undone.`}
+          onConfirm={confirmBulkDelete}
+          onCancel={() => setShowBulkDeleteConfirm(false)}
+          loading={deleting}
+          confirmText="Delete All"
+          confirmColor="#ef4444"
+          icon="danger"
         />
       )}
 
