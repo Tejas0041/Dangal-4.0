@@ -173,22 +173,27 @@ export default function Register() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    console.log('Client: Selected file:', file.name, 'Size:', file.size, 'Type:', file.type);
+    console.log('=== CLIENT UPLOAD START ===');
+    console.log('File name:', file.name);
+    console.log('File size:', file.size, 'bytes (', (file.size / 1024 / 1024).toFixed(2), 'MB)');
+    console.log('File type:', file.type);
+    console.log('Last modified:', new Date(file.lastModified).toISOString());
 
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif'];
+    if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid File",
-        description: "Please select a PNG, JPG, JPEG, or WebP image",
+        description: "Please select an image file",
         variant: "destructive",
       });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
+      console.log('File too large:', file.size);
       toast({
         title: "File Too Large",
-        description: "Image size should be less than 5MB. Please compress the image or take a new photo.",
+        description: `Image is ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum is 5MB. Please compress or use a smaller image.`,
         variant: "destructive",
       });
       return;
@@ -198,35 +203,47 @@ export default function Register() {
     const formData = new FormData();
     formData.append('image', file);
 
+    console.log('Starting upload to server...');
+    const startTime = Date.now();
+
     try {
-      console.log('Client: Starting upload...');
       const response = await api.post('/api/upload/payment', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000, // 60 second timeout for large files
+        timeout: 120000, // 2 minutes timeout
         onUploadProgress: (progressEvent) => {
           const percentCompleted = progressEvent.total 
             ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
             : 0;
-          console.log('Upload progress:', percentCompleted + '%');
+          console.log(`Upload progress: ${percentCompleted}% (${progressEvent.loaded} / ${progressEvent.total} bytes)`);
         }
       });
-      console.log('Client: Upload successful');
+      
+      const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`=== UPLOAD SUCCESS in ${uploadTime}s ===`);
+      console.log('Response:', response.data);
+      
       setPaymentScreenshot(response.data.url);
       toast({
         title: "Upload Successful",
-        description: "Payment screenshot uploaded",
+        description: "Payment screenshot uploaded successfully",
       });
     } catch (error: any) {
-      console.error('Client: Upload error:', error);
-      console.error('Client: Error response:', error.response?.data);
-      console.error('Client: Error status:', error.response?.status);
+      const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.error(`=== UPLOAD FAILED after ${uploadTime}s ===`);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Response status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
+      console.error('Full error:', error);
       
       let errorMessage = 'Failed to upload payment screenshot';
       
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        errorMessage = 'Upload timeout. Please try with a smaller image or better internet connection.';
-      } else if (error.code === 'ERR_NETWORK') {
-        errorMessage = 'Network error. Please check your internet connection and try again.';
+        errorMessage = 'Upload timeout. The image is taking too long to upload. Please try with a smaller image or better internet connection.';
+      } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        errorMessage = 'Network error. Please check your internet connection and try again. If the problem persists, try a smaller image.';
+      } else if (error.response?.status === 413) {
+        errorMessage = 'File too large for server. Please use a smaller image.';
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
