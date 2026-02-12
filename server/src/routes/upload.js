@@ -14,10 +14,16 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit for images
   },
   fileFilter: (req, file, cb) => {
+    console.log('Multer fileFilter - MIME type:', file.mimetype);
+    console.log('Multer fileFilter - Original name:', file.originalname);
+    console.log('Multer fileFilter - Size:', file.size);
+    
     // Accept images only
     if (!file.mimetype.startsWith('image/')) {
+      console.error('Multer fileFilter - Rejected: Not an image file');
       return cb(new Error('Only image files are allowed'), false);
     }
+    console.log('Multer fileFilter - Accepted');
     cb(null, true);
   }
 });
@@ -76,16 +82,62 @@ router.post('/image', authenticateAdmin, upload.single('image'), async (req, res
 });
 
 // Upload payment screenshot endpoint (authenticated users)
-router.post('/payment', authenticate, upload.single('image'), async (req, res) => {
+router.post('/payment', authenticate, (req, res, next) => {
+  console.log('=== PAYMENT UPLOAD REQUEST STARTED ===');
+  console.log('User authenticated:', req.user?.email || 'No user');
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+  
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('=== MULTER ERROR ===');
+      console.error('Error type:', err.constructor.name);
+      console.error('Error message:', err.message);
+      console.error('Error code:', err.code);
+      console.error('Error stack:', err.stack);
+      
+      if (err instanceof multer.MulterError) {
+        console.error('Multer error code:', err.code);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ 
+            message: 'File too large. Maximum size is 5MB',
+            errorCode: 'FILE_TOO_LARGE'
+          });
+        }
+        return res.status(400).json({ 
+          message: err.message,
+          errorCode: err.code
+        });
+      }
+      
+      return res.status(400).json({ 
+        message: err.message || 'File upload error',
+        errorCode: 'UPLOAD_ERROR'
+      });
+    }
+    
+    next();
+  });
+}, async (req, res) => {
   try {
+    console.log('=== MULTER PROCESSING COMPLETE ===');
+    
     if (!req.file) {
-      return res.status(400).json({ message: 'No image file provided' });
+      console.error('No file in request after multer processing');
+      return res.status(400).json({ 
+        message: 'No image file provided',
+        errorCode: 'NO_FILE'
+      });
     }
 
-    console.log('Payment upload - File size:', req.file.size, 'bytes');
-    console.log('Payment upload - MIME type:', req.file.mimetype);
-    console.log('Payment upload - User:', req.user?.email);
+    console.log('File details:');
+    console.log('  - Original name:', req.file.originalname);
+    console.log('  - MIME type:', req.file.mimetype);
+    console.log('  - Size:', req.file.size, 'bytes (', (req.file.size / 1024 / 1024).toFixed(2), 'MB)');
+    console.log('  - Buffer length:', req.file.buffer.length);
+    console.log('User:', req.user?.email);
 
+    console.log('=== STARTING CLOUDINARY UPLOAD ===');
+    
     // Upload to Cloudinary
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -100,10 +152,20 @@ router.post('/payment', authenticate, upload.single('image'), async (req, res) =
         },
         (error, result) => {
           if (error) {
-            console.error('Cloudinary payment upload error:', error);
+            console.error('=== CLOUDINARY ERROR ===');
+            console.error('Error type:', error.constructor.name);
+            console.error('Error message:', error.message);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            console.error('HTTP code:', error.http_code);
             reject(error);
           } else {
-            console.log('Payment screenshot uploaded successfully');
+            console.log('=== CLOUDINARY SUCCESS ===');
+            console.log('Secure URL:', result.secure_url);
+            console.log('Public ID:', result.public_id);
+            console.log('Format:', result.format);
+            console.log('Width:', result.width);
+            console.log('Height:', result.height);
+            console.log('Bytes:', result.bytes);
             resolve(result);
           }
         }
@@ -112,14 +174,24 @@ router.post('/payment', authenticate, upload.single('image'), async (req, res) =
       uploadStream.end(req.file.buffer);
     });
 
+    console.log('=== PAYMENT UPLOAD COMPLETE ===');
     res.json({
       message: 'Payment screenshot uploaded successfully',
       url: result.secure_url,
       publicId: result.public_id
     });
   } catch (error) {
-    console.error('Payment upload error:', error);
-    res.status(500).json({ message: 'Failed to upload payment screenshot', error: error.message });
+    console.error('=== PAYMENT UPLOAD ERROR (CATCH BLOCK) ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', JSON.stringify(error, null, 2));
+    
+    res.status(500).json({ 
+      message: 'Failed to upload payment screenshot', 
+      error: error.message,
+      errorCode: 'CLOUDINARY_ERROR'
+    });
   }
 });
 
