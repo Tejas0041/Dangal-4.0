@@ -17,10 +17,18 @@ const ScoreManagement = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [showEndMatchConfirm, setShowEndMatchConfirm] = useState(false);
   const [matchToEnd, setMatchToEnd] = useState(null);
+  const [endingMatch, setEndingMatch] = useState(false);
   const [showWinnerSelect, setShowWinnerSelect] = useState(false);
   const [tieMatchData, setTieMatchData] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isPendingSave, setIsPendingSave] = useState(false);
+  
+  // Search and filter states
+  const [searchMatchNumber, setSearchMatchNumber] = useState('');
+  const [filterHall, setFilterHall] = useState('');
+  const [filterGame, setFilterGame] = useState('');
+  const [halls, setHalls] = useState([]);
+  const [games, setGames] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -37,20 +45,26 @@ const ScoreManagement = () => {
   const fetchMatches = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/schedule`, { withCredentials: true });
+      const [matchesRes, hallsRes, gamesRes] = await Promise.all([
+        axios.get(`${API_URL}/api/schedule`, { withCredentials: true }),
+        axios.get(`${API_URL}/api/halls/all`, { withCredentials: true }),
+        axios.get(`${API_URL}/api/games`, { withCredentials: true })
+      ]);
       
       // Count live and completed matches
-      const liveCount = response.data.filter(match => match.status === 'Live').length;
-      const completedCount = response.data.filter(match => match.status === 'Completed').length;
+      const liveCount = matchesRes.data.filter(match => match.status === 'Live').length;
+      const completedCount = matchesRes.data.filter(match => match.status === 'Completed').length;
       
       setLiveMatchesCount(liveCount);
       setCompletedMatchesCount(completedCount);
       
       // Filter matches based on active tab
-      const filteredMatches = response.data.filter(match => 
+      const filteredMatches = matchesRes.data.filter(match => 
         activeTab === 'live' ? match.status === 'Live' : match.status === 'Completed'
       );
       setMatches(filteredMatches);
+      setHalls(hallsRes.data);
+      setGames(gamesRes.data);
     } catch (error) {
       console.error('Error fetching matches:', error);
       setToast({ message: 'Failed to load matches', type: 'error' });
@@ -103,6 +117,7 @@ const ScoreManagement = () => {
   };
 
   const confirmEndMatch = async () => {
+    setEndingMatch(true);
     try {
       await axios.patch(`${API_URL}/api/schedule/${matchToEnd.matchId}/status`, 
         { status: 'Completed', winner: matchToEnd.winner }, 
@@ -114,12 +129,17 @@ const ScoreManagement = () => {
       localStorage.removeItem(`undoHistory_${matchToEnd.matchId}`);
       localStorage.removeItem(`kabaddiUndoHistory_${matchToEnd.matchId}`);
       
+      // Update counts
+      setLiveMatchesCount(prev => Math.max(0, prev - 1));
+      setCompletedMatchesCount(prev => prev + 1);
+      
       // Remove from current list and go back
       setMatches(prevMatches => prevMatches.filter(match => match._id !== matchToEnd.matchId));
       setSelectedMatch(null);
     } catch (error) {
       setToast({ message: 'Failed to end match', type: 'error' });
     } finally {
+      setEndingMatch(false);
       setShowEndMatchConfirm(false);
       setMatchToEnd(null);
     }
@@ -141,6 +161,10 @@ const ScoreManagement = () => {
       // Clear undo history from localStorage when match ends
       localStorage.removeItem(`undoHistory_${tieMatchData.match._id}`);
       localStorage.removeItem(`kabaddiUndoHistory_${tieMatchData.match._id}`);
+      
+      // Update counts
+      setLiveMatchesCount(prev => Math.max(0, prev - 1));
+      setCompletedMatchesCount(prev => prev + 1);
       
       // Remove from current list and go back
       setMatches(prevMatches => prevMatches.filter(match => match._id !== tieMatchData.match._id));
@@ -310,6 +334,7 @@ const ScoreManagement = () => {
               confirmText="End Match"
               confirmColor="#FFD700"
               icon="warning"
+              loading={endingMatch}
             />
           )}
 
@@ -389,30 +414,173 @@ const ScoreManagement = () => {
           </button>
         </div>
 
+        {/* Search and Filters */}
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '1rem',
+          border: '1px solid rgba(255, 215, 0, 0.2)',
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gap: '1rem'
+          }}>
+            {/* Search by Match Number */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#FFD700', fontSize: '0.9rem' }}>
+                Search Match Number
+              </label>
+              <input
+                type="text"
+                placeholder="Enter match number..."
+                value={searchMatchNumber}
+                onChange={(e) => setSearchMatchNumber(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem'
+                }}
+              />
+            </div>
+
+            {/* Filter by Hall */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#FFD700', fontSize: '0.9rem' }}>
+                Filter by Hall/Hostel
+              </label>
+              <select
+                value={filterHall}
+                onChange={(e) => setFilterHall(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>All Halls/Hostels</option>
+                {halls.map(hall => (
+                  <option key={hall._id} value={hall._id} style={{ background: '#1a1a1a', color: '#fff' }}>{hall.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter by Game */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#FFD700', fontSize: '0.9rem' }}>
+                Filter by Game
+              </label>
+              <select
+                value={filterGame}
+                onChange={(e) => setFilterGame(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>All Games</option>
+                {games.map(game => (
+                  <option key={game._id} value={game._id} style={{ background: '#1a1a1a', color: '#fff' }}>{game.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(searchMatchNumber || filterHall || filterGame) && (
+            <button
+              onClick={() => {
+                setSearchMatchNumber('');
+                setFilterHall('');
+                setFilterGame('');
+              }}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                background: 'rgba(255, 215, 0, 0.1)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
         {/* Matches List */}
         {loading ? (
           <Loader />
-        ) : matches.length === 0 ? (
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '1rem',
-            border: '1px solid rgba(255, 215, 0, 0.2)',
-            padding: '4rem 2rem',
-            textAlign: 'center',
-            color: '#888'
-          }}>
-            <p style={{ fontSize: '1.1rem' }}>
-              No {activeTab === 'live' ? 'live' : 'completed'} matches found
-            </p>
-          </div>
-        ) : (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-            gap: '1.5rem' 
-          }}>
-            {matches.map((match) => (
+        ) : (() => {
+          // Apply filters
+          const filteredMatches = matches.filter(match => {
+            // Search by match number
+            if (searchMatchNumber && !match.matchNumber.toString().includes(searchMatchNumber)) {
+              return false;
+            }
+            
+            // Filter by hall
+            if (filterHall) {
+              const teamAHallId = match.teamA?.hallId?._id || match.teamA?.hallId;
+              const teamBHallId = match.teamB?.hallId?._id || match.teamB?.hallId;
+              if (teamAHallId !== filterHall && teamBHallId !== filterHall) {
+                return false;
+              }
+            }
+            
+            // Filter by game
+            if (filterGame) {
+              const gameId = match.game?._id || match.game;
+              if (gameId !== filterGame) {
+                return false;
+              }
+            }
+            
+            return true;
+          });
+
+          return filteredMatches.length === 0 ? (
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '1rem',
+              border: '1px solid rgba(255, 215, 0, 0.2)',
+              padding: '4rem 2rem',
+              textAlign: 'center',
+              color: '#888'
+            }}>
+              <p style={{ fontSize: '1.1rem' }}>
+                {searchMatchNumber || filterHall || filterGame 
+                  ? 'No matches found matching your filters' 
+                  : `No ${activeTab === 'live' ? 'live' : 'completed'} matches found`}
+              </p>
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
+              gap: '1.5rem' 
+            }}>
+              {filteredMatches.map((match) => (
               <div
                 key={match._id}
                 onClick={() => setSelectedMatch(match)}
@@ -647,7 +815,8 @@ const ScoreManagement = () => {
               </div>
             ))}
           </div>
-        )}
+          );
+        })()}
 
         {toast && (
           <Toast
@@ -715,10 +884,7 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
           { withCredentials: true }
         );
         
-        // Update match object
-        match.status = editedStatus;
-        
-        // Reload to refresh the list
+        // Reload to refresh the list and counts
         window.location.reload();
       } catch (error) {
         console.error('Error updating status:', error);
@@ -760,13 +926,17 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
       
       console.log('Status Response:', statusResponse.data);
       
-      // If we're on the Live tab, remove the match from the list
+      // Update counts
       if (activeTab === 'live') {
+        // Moving from Live to Completed
         setMatches(prevMatches => prevMatches.filter(m => m._id !== match._id));
       }
       
       // Close the score menu
       setSelectedMatch(null);
+      
+      // Refetch to update counts
+      window.location.reload();
       
       setIsEditing(false);
     } catch (error) {

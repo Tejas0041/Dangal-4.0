@@ -41,6 +41,11 @@ const ScheduleManagement = () => {
   const [toast, setToast] = useState(null);
   const [statusDropdown, setStatusDropdown] = useState(null); // Track which match's dropdown is open
   const [updatingStatus, setUpdatingStatus] = useState(null); // Track which match is being updated
+  
+  // Search and filter states
+  const [searchMatchNumber, setSearchMatchNumber] = useState('');
+  const [filterHall, setFilterHall] = useState('');
+  const [filterGame, setFilterGame] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -483,8 +488,149 @@ const ScheduleManagement = () => {
           </div>
         )}
 
+        {/* Search and Filters */}
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '1rem',
+          border: '1px solid rgba(255, 215, 0, 0.2)',
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(3, 1fr)',
+            gap: '1rem'
+          }}>
+            {/* Search by Match Number */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#FFD700', fontSize: '0.9rem' }}>
+                Search Match Number
+              </label>
+              <input
+                type="text"
+                placeholder="Enter match number..."
+                value={searchMatchNumber}
+                onChange={(e) => setSearchMatchNumber(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem'
+                }}
+              />
+            </div>
+
+            {/* Filter by Hall */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#FFD700', fontSize: '0.9rem' }}>
+                Filter by Hall/Hostel
+              </label>
+              <select
+                value={filterHall}
+                onChange={(e) => setFilterHall(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>All Halls/Hostels</option>
+                {halls.map(hall => (
+                  <option key={hall._id} value={hall._id} style={{ background: '#1a1a1a', color: '#fff' }}>{hall.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter by Game */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#FFD700', fontSize: '0.9rem' }}>
+                Filter by Game
+              </label>
+              <select
+                value={filterGame}
+                onChange={(e) => setFilterGame(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>All Games</option>
+                {games.map(game => (
+                  <option key={game._id} value={game._id} style={{ background: '#1a1a1a', color: '#fff' }}>{game.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(searchMatchNumber || filterHall || filterGame) && (
+            <button
+              onClick={() => {
+                setSearchMatchNumber('');
+                setFilterHall('');
+                setFilterGame('');
+              }}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                background: 'rgba(255, 215, 0, 0.1)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
         {/* Matches List - Cards Layout */}
-        {matches.length === 0 ? (
+        {(() => {
+          // Apply filters
+          const filteredMatches = matches.filter(match => {
+            // Search by match number
+            if (searchMatchNumber && !match.matchNumber.toString().includes(searchMatchNumber)) {
+              return false;
+            }
+            
+            // Filter by hall
+            if (filterHall) {
+              const teamAHallId = match.teamA?.hallId?._id || match.teamA?.hallId;
+              const teamBHallId = match.teamB?.hallId?._id || match.teamB?.hallId;
+              if (teamAHallId !== filterHall && teamBHallId !== filterHall) {
+                return false;
+              }
+            }
+            
+            // Filter by game
+            if (filterGame) {
+              const gameId = match.game?._id || match.game;
+              if (gameId !== filterGame) {
+                return false;
+              }
+            }
+            
+            return true;
+          });
+
+          return filteredMatches.length === 0 ? (
           <div style={{
             background: 'rgba(0, 0, 0, 0.4)',
             backdropFilter: 'blur(20px)',
@@ -500,8 +646,14 @@ const ScheduleManagement = () => {
               <line x1="8" y1="2" x2="8" y2="6"></line>
               <line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
-            <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No matches scheduled yet</p>
-            <p style={{ fontSize: '0.9rem' }}>Click "Create Match" to add your first match</p>
+            <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+              {searchMatchNumber || filterHall || filterGame 
+                ? 'No matches found matching your filters' 
+                : 'No matches scheduled yet'}
+            </p>
+            {!searchMatchNumber && !filterHall && !filterGame && (
+              <p style={{ fontSize: '0.9rem' }}>Click "Create Match" to add your first match</p>
+            )}
           </div>
         ) : (
           <div style={{ 
@@ -509,7 +661,7 @@ const ScheduleManagement = () => {
             gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
             gap: '1.5rem' 
           }}>
-            {matches.map((match, index) => (
+            {filteredMatches.map((match, index) => (
               <div
                 key={match._id}
                 style={{
@@ -892,7 +1044,8 @@ const ScheduleManagement = () => {
               </div>
             ))}
           </div>
-        )}
+          );
+        })()}
 
         {/* Create/Edit Modal */}
         {showModal && (
@@ -903,9 +1056,10 @@ const ScheduleManagement = () => {
             backdropFilter: 'blur(10px)',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             zIndex: 1000,
             padding: '1rem',
+            paddingTop: '5rem',
             overflowY: 'auto'
           }}>
             <div style={{
@@ -916,9 +1070,10 @@ const ScheduleManagement = () => {
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
               width: '100%',
               maxWidth: '600px',
-              maxHeight: '90vh',
+              maxHeight: 'calc(100vh - 6rem)',
               overflowY: 'auto',
-              position: 'relative'
+              position: 'relative',
+              marginBottom: '2rem'
             }}
             className="schedule-modal-content"
             >

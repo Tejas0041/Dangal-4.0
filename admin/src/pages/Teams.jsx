@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
+import { jsPDF } from 'jspdf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -18,6 +19,7 @@ const Teams = () => {
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showHallDropdown, setShowHallDropdown] = useState(false);
   const [showGameDropdown, setShowGameDropdown] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -90,6 +92,181 @@ const Teams = () => {
     setShowTeamModal(true);
   };
 
+  const generatePDF = async () => {
+  setGeneratingPDF(true);
+  try {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const logoImg = new Image();
+    logoImg.src = '/black_logo.webp';
+
+    await new Promise((resolve, reject) => {
+      logoImg.onload = resolve;
+      logoImg.onerror = reject;
+    });
+
+    const teamsByHallAndGame = {};
+    teams.forEach(team => {
+      const hallName = getHallName(team.hallId);
+      const gameName = getGameName(team.gameId);
+
+      if (!teamsByHallAndGame[hallName]) teamsByHallAndGame[hallName] = {};
+      if (!teamsByHallAndGame[hallName][gameName])
+        teamsByHallAndGame[hallName][gameName] = [];
+
+      teamsByHallAndGame[hallName][gameName].push(team);
+    });
+
+    let isFirstPage = true;
+
+    for (const hallName of Object.keys(teamsByHallAndGame)) {
+      const gamesForHall = teamsByHallAndGame[hallName];
+
+      for (const gameName of Object.keys(gamesForHall)) {
+        const teamsForGame = gamesForHall[gameName];
+
+        if (!isFirstPage) doc.addPage();
+        isFirstPage = false;
+
+        let yPos = 18;
+
+        // Header
+        doc.setFontSize(13);
+        doc.text('Macdonald Hall Presents', pageWidth / 2, yPos, { align: 'center' });
+
+        yPos += 10;
+
+        // ===== LOGO + DANGAL CENTER BLOCK =====
+        const imgProps = doc.getImageProperties(logoImg);
+        const logoHeight = 40;
+        const logoWidth = (imgProps.width / imgProps.height) * logoHeight;
+
+        const dangalFontSize = 42;
+
+        doc.setFont('times', 'bold');
+        doc.setFontSize(dangalFontSize);
+
+        const dangalWidth = doc.getTextWidth('DANGAL 4.0');
+
+        const totalWidth = logoWidth + 15 + dangalWidth;
+        const startX = (pageWidth - totalWidth) / 2;
+
+        // logo
+        doc.addImage(
+          logoImg,
+          'WEBP',
+          startX,
+          yPos,
+          logoWidth,
+          logoHeight
+        );
+
+        // dangal text (vertically centered with logo)
+        doc.text(
+          'DANGAL 4.0',
+          startX + logoWidth + 15,
+          yPos + logoHeight / 2 + dangalFontSize / 3
+        );
+
+        yPos += logoHeight + 15;
+
+        // Game Title
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text(
+          `Teams for ${gameName} (${hallName})`,
+          pageWidth / 2,
+          yPos,
+          { align: 'center' }
+        );
+
+        yPos += 18;
+
+        const separatorX = pageWidth / 2;
+        doc.line(separatorX, yPos, separatorX, pageHeight - 20);
+
+        const teamA = teamsForGame.find(t => t.teamName === 'A') || teamsForGame[0];
+        const teamB = teamsForGame.find(t => t.teamName === 'B') || teamsForGame[1];
+
+        const leftMargin = 20;
+        const rightMargin = pageWidth - 20;
+
+        const columnWidth = separatorX - leftMargin - 10;
+
+        // ===== TEAM TITLE LARGE =====
+        const teamTitleSize = 24;
+        const playerSize = 19;
+        const lineGap = 11;
+
+        doc.setFontSize(teamTitleSize);
+        doc.setFont('helvetica', 'bold');
+
+        const teamATitle = teamA.secondTeamName
+          ? `${teamA.secondTeamName} (Team ${teamA.teamName})`
+          : `Team ${teamA.teamName}`;
+
+        const teamBTitle = teamB.secondTeamName
+          ? `${teamB.secondTeamName} (Team ${teamB.teamName})`
+          : `Team ${teamB.teamName}`;
+
+        const wrappedATitle = doc.splitTextToSize(teamATitle, columnWidth);
+        doc.text(wrappedATitle, leftMargin, yPos);
+
+        const wrappedBTitle = doc.splitTextToSize(teamBTitle, columnWidth);
+        doc.text(wrappedBTitle, rightMargin, yPos, { align: 'right' });
+
+        let yA = yPos + wrappedATitle.length * lineGap + 6;
+        let yB = yPos + wrappedBTitle.length * lineGap + 6;
+
+        doc.setFontSize(playerSize);
+        doc.setFont('helvetica', 'normal');
+
+        // ===== LEFT PLAYERS =====
+        teamA.players.forEach((player, idx) => {
+          const numberText = `${idx + 1}.`;
+          doc.text(numberText, leftMargin, yA);
+
+          const nameWrapped = doc.splitTextToSize(
+            player.name,
+            columnWidth - 15
+          );
+
+          doc.text(nameWrapped, leftMargin + 15, yA);
+
+          yA += nameWrapped.length * lineGap;
+        });
+
+        // ===== RIGHT PLAYERS (aligned numbers column) =====
+        teamB.players.forEach((player, idx) => {
+          const numberText = `${idx + 1}.`;
+          doc.text(numberText, rightMargin - columnWidth, yB);
+
+          const nameWrapped = doc.splitTextToSize(
+            player.name,
+            columnWidth - 15
+          );
+
+          doc.text(nameWrapped, rightMargin - 15, yB, {
+            align: 'right'
+          });
+
+          yB += nameWrapped.length * lineGap;
+        });
+      }
+    }
+
+    doc.save('Dangal_4.0_All_Teams.pdf');
+  } catch (error) {
+    console.error(error);
+    alert('Failed to generate PDF.');
+  } finally {
+    setGeneratingPDF(false);
+  }
+};
+
+
   if (loading) {
     return (
       <AdminLayout>
@@ -148,6 +325,14 @@ const Teams = () => {
 
   return (
     <AdminLayout>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       <div>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
@@ -521,6 +706,67 @@ const Teams = () => {
           </div>
         </div>
 
+        {/* Download PDF Button */}
+        <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <button
+            onClick={generatePDF}
+            disabled={generatingPDF || teams.length === 0}
+            style={{
+              padding: '1rem 2rem',
+              background: generatingPDF || teams.length === 0 ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 215, 0, 0.2)',
+              border: '1px solid rgba(255, 215, 0, 0.4)',
+              borderRadius: '0.75rem',
+              color: generatingPDF || teams.length === 0 ? '#888' : '#FFD700',
+              cursor: generatingPDF || teams.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              transition: 'all 0.3s',
+              opacity: generatingPDF || teams.length === 0 ? 0.5 : 1,
+            }}
+            onMouseEnter={(e) => {
+              if (!generatingPDF && teams.length > 0) {
+                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!generatingPDF && teams.length > 0) {
+                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
+            }}
+          >
+            {generatingPDF ? (
+              <>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '3px solid rgba(255, 215, 0, 0.2)',
+                  borderTop: '3px solid #FFD700',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }} />
+                Generating PDF...
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download All Teams PDF
+              </>
+            )}
+          </button>
+          <div style={{ marginTop: '0.5rem', color: '#888', fontSize: '0.85rem' }}>
+            * To be implemented properly
+          </div>
+        </div>
+
         {/* Teams List */}
         <div style={{
           background: 'rgba(0, 0, 0, 0.4)',
@@ -650,8 +896,9 @@ const Teams = () => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 1000,
+            zIndex: 9999,
             padding: '1rem',
+            overflowY: 'auto',
           }}
           onClick={() => setShowTeamModal(false)}
         >
@@ -754,36 +1001,6 @@ const Teams = () => {
                 </div>
               </div>
 
-              {/* Payment Screenshot */}
-              {selectedTeam.paymentScreenshot && (
-                <div style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                      <line x1="1" y1="10" x2="23" y2="10"></line>
-                    </svg>
-                    Payment Screenshot
-                  </h3>
-                  <div style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '0.75rem',
-                    padding: '1rem',
-                    textAlign: 'center',
-                  }}>
-                    <img
-                      src={selectedTeam.paymentScreenshot}
-                      alt="Payment Screenshot"
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '400px',
-                        borderRadius: '0.5rem',
-                        objectFit: 'contain',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

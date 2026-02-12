@@ -167,7 +167,11 @@ const ConfirmDialog = ({
                 <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
               </svg>
             )}
-            {loading ? 'Deleting...' : confirmText}
+            {loading ? `${confirmText.replace(/^(Delete|End Match|Confirm)/, (match) => {
+              if (match === 'Delete') return 'Deleting';
+              if (match === 'End Match') return 'Ending';
+              return match + 'ing';
+            })}...` : confirmText}
           </button>
         </div>
       </div>

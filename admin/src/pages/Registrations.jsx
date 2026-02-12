@@ -1052,8 +1052,9 @@ const Registrations = () => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 1000,
+            zIndex: 9999,
             padding: isMobile ? '0.5rem' : '1rem',
+            overflowY: 'auto',
           }}
           onClick={() => setShowTeamModal(false)}
         >
