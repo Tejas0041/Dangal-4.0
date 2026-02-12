@@ -197,7 +197,7 @@ export default function Register() {
     formData.append('image', file);
 
     try {
-      const response = await api.post('/api/upload/image', formData, {
+      const response = await api.post('/api/upload/payment', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setPaymentScreenshot(response.data.url);
@@ -205,11 +205,12 @@ export default function Register() {
         title: "Upload Successful",
         description: "Payment screenshot uploaded",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload payment screenshot';
       toast({
         title: "Upload Failed",
-        description: "Failed to upload payment screenshot",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -269,6 +270,9 @@ export default function Register() {
       setSecondTeamName('');
       setPlayers([]);
       setPaymentScreenshot('');
+      
+      // Scroll to top of page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
@@ -543,62 +547,65 @@ export default function Register() {
               </motion.div>
             ) : (
               <div className="space-y-6">
-                {/* Registration Status - Top Row */}
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-black/40 backdrop-blur-md border border-white/20 p-6 rounded-2xl mx-auto w-full lg:w-[75%]"
-                >
-                  <div className="flex flex-col gap-4 mb-6">
-                    <h3 className="text-xl font-bold text-primary flex items-center gap-2">
-                      <CheckCircle2 size={24} />
-                      Registration Status
-                    </h3>
-                    
-                    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-primary/10 border border-primary/30 rounded-lg w-full">
-                      <span className="text-xs sm:text-sm text-gray-400 whitespace-nowrap">Hall/Hostel:</span>
-                      <span className="text-white font-bold text-base sm:text-lg truncate flex-1">{hall.name}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {registrationStatus.map((status) => (
-                      <div
-                        key={status.gameId}
-                        className={`p-5 rounded-lg border ${
-                          status.teamsRegistered >= status.maxTeams
-                            ? 'bg-green-500/10 border-green-500/30'
-                            : 'bg-white/5 border-white/10'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <p className="font-bold text-white text-base">{status.gameName}</p>
-                          <span className={`text-sm px-3 py-1 rounded-full font-bold ${
-                            status.teamsRegistered >= status.maxTeams
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {status.teamsRegistered}/{status.maxTeams}
-                          </span>
-                        </div>
-                        {status.teamNames.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {status.teamNames.map((team, index) => (
-                              <span
-                                key={`${team.teamName}-${index}`}
-                                className="text-sm px-3 py-1 bg-primary/20 text-primary rounded font-semibold"
-                              >
-                                {team.secondTeamName || `Team ${team.teamName}`}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-500">No teams registered</p>
-                        )}
+                {/* Registration Status - Top Row - Only show when no game is selected */}
+                {!selectedGame && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="bg-black/40 backdrop-blur-md border border-white/20 p-6 rounded-2xl mx-auto w-full lg:w-[75%]"
+                  >
+                    <div className="flex flex-col gap-4 mb-6">
+                      <h3 className="text-xl font-bold text-primary flex items-center gap-2">
+                        <CheckCircle2 size={24} />
+                        Registration Status
+                      </h3>
+                      
+                      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-primary/10 border border-primary/30 rounded-lg w-full">
+                        <span className="text-xs sm:text-sm text-gray-400 whitespace-nowrap">Hall/Hostel:</span>
+                        <span className="text-white font-bold text-base sm:text-lg truncate flex-1">{hall.name}</span>
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {registrationStatus.map((status) => (
+                        <div
+                          key={status.gameId}
+                          className={`p-5 rounded-lg border ${
+                            status.teamsRegistered >= status.maxTeams
+                              ? 'bg-green-500/10 border-green-500/30'
+                              : 'bg-white/5 border-white/10'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <p className="font-bold text-white text-base">{status.gameName}</p>
+                            <span className={`text-sm px-3 py-1 rounded-full font-bold ${
+                              status.teamsRegistered >= status.maxTeams
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {status.teamsRegistered}/{status.maxTeams}
+                            </span>
+                          </div>
+                          {status.teamNames.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {status.teamNames.map((team, index) => (
+                                <span
+                                  key={`${team.teamName}-${index}`}
+                                  className="text-sm px-3 py-1 bg-primary/20 text-primary rounded font-semibold"
+                                >
+                                  {team.secondTeamName || `Team ${team.teamName}`}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">No teams registered</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Event Selection or Registration Form */}
                 {!selectedGame ? (

@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import cloudinary from '../config/cloudinary.js';
 import { authenticateAdmin } from '../middleware/adminAuth.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -71,6 +72,54 @@ router.post('/image', authenticateAdmin, upload.single('image'), async (req, res
   } catch (error) {
     console.error('Image upload error:', error);
     res.status(500).json({ message: 'Failed to upload image', error: error.message });
+  }
+});
+
+// Upload payment screenshot endpoint (authenticated users)
+router.post('/payment', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file provided' });
+    }
+
+    console.log('Payment upload - File size:', req.file.size, 'bytes');
+    console.log('Payment upload - MIME type:', req.file.mimetype);
+    console.log('Payment upload - User:', req.user?.email);
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'dangal/payments',
+          resource_type: 'image',
+          transformation: [
+            { width: 1200, height: 1600, crop: 'limit' },
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary payment upload error:', error);
+            reject(error);
+          } else {
+            console.log('Payment screenshot uploaded successfully');
+            resolve(result);
+          }
+        }
+      );
+
+      uploadStream.end(req.file.buffer);
+    });
+
+    res.json({
+      message: 'Payment screenshot uploaded successfully',
+      url: result.secure_url,
+      publicId: result.public_id
+    });
+  } catch (error) {
+    console.error('Payment upload error:', error);
+    res.status(500).json({ message: 'Failed to upload payment screenshot', error: error.message });
   }
 });
 

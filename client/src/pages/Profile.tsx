@@ -425,6 +425,22 @@ export default function Profile() {
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Register Button */}
+                    <motion.button
+                      onClick={() => navigate('/register')}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full mt-6 py-4 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold text-lg rounded-xl shadow-lg hover:shadow-primary/50 transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                      </svg>
+                      Complete Registration
+                    </motion.button>
                   </div>
                 )}
               </div>
