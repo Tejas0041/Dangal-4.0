@@ -527,9 +527,17 @@ export default function MatchDetail() {
   useEffect(() => {
     fetchMatch();
 
-    // Check socket connection
-    console.log('Socket connected:', socket.connected);
-    console.log('Setting up socket listeners for matchId:', matchId);
+    // Connect to socket if not connected
+    if (!socket.connected) {
+      console.log('MatchDetail: Socket not connected, connecting...');
+      socket.connect();
+    }
+
+    // Join the live-scores room
+    socket.emit('join-scores');
+    console.log('MatchDetail: Joined live-scores room');
+    console.log('MatchDetail: Setting up socket listeners for matchId:', matchId);
+    console.log('MatchDetail: Socket connected:', socket.connected);
 
     // Socket listener for real-time updates
     socket.on('matchUpdated', handleMatchUpdate);
@@ -538,11 +546,13 @@ export default function MatchDetail() {
     socket.on('matchWon', handleMatchWon);
 
     return () => {
-      console.log('Cleaning up socket listeners for matchId:', matchId);
+      console.log('MatchDetail: Cleaning up socket listeners for matchId:', matchId);
       socket.off('matchUpdated', handleMatchUpdate);
       socket.off('scoreUpdate', handleScoreUpdate);
       socket.off('setWon', handleSetWon);
       socket.off('matchWon', handleMatchWon);
+      socket.emit('leave-scores');
+      console.log('MatchDetail: Left live-scores room');
     };
   }, [matchId, handleMatchUpdate, handleScoreUpdate, handleSetWon, handleMatchWon]);
 
@@ -671,18 +681,59 @@ export default function MatchDetail() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <div className="flex items-center justify-center gap-4 mb-6">
+          {/* Mobile: Icon above game name */}
+          <div className="flex md:hidden flex-col items-center justify-center gap-4 mb-6">
             {match.game.icon && (
               <img src={match.game.icon} alt="" className="w-20 h-20" />
             )}
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-primary">{match.game.name}</h1>
+              <h1 className="text-4xl font-bold text-primary">{match.game.name}</h1>
               <p className="text-gray-400 text-lg">Match {match.matchNumber} • {match.round}</p>
               {match.matchType && (
                 <p className="text-gray-500 text-sm">{match.matchType}</p>
               )}
             </div>
           </div>
+
+          {/* Desktop: Icon left to game name */}
+          <div className="hidden md:flex items-start justify-center gap-4 mb-6">
+            {match.game.icon && (
+              <img src={match.game.icon} alt="" className="w-12 h-12 mt-2" />
+            )}
+            <div>
+              <h1 className="text-5xl font-bold text-primary">{match.game.name}</h1>
+              <p className="text-gray-400 text-lg">Match {match.matchNumber} • {match.round}</p>
+              {match.matchType && (
+                <p className="text-gray-500 text-sm">{match.matchType}</p>
+              )}
+            </div>
+          </div>
+          
+          {/* Winner Message - Shows when match is completed */}
+          {match.status === 'Completed' && match.result?.winner && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mb-6 inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-yellow-500/20 via-yellow-400/20 to-yellow-500/20 border-2 border-yellow-500/50 rounded-full"
+            >
+              <Trophy className="w-6 h-6 text-yellow-500 animate-pulse" />
+              <span className="text-yellow-500 font-bold text-lg">
+                {(() => {
+                  const winnerId = typeof match.result.winner === 'string' 
+                    ? match.result.winner 
+                    : match.result.winner._id;
+                  const isTeamA = String(match.teamA._id) === String(winnerId);
+                  const winnerTeam = isTeamA ? match.teamA : match.teamB;
+                  
+                  if (winnerTeam.secondTeamName) {
+                    return `${winnerTeam.secondTeamName} (${winnerTeam.hallId.name} - Team ${winnerTeam.teamName}) won the match`;
+                  }
+                  return `${winnerTeam.hallId.name} (Team ${winnerTeam.teamName}) won the match`;
+                })()}
+              </span>
+            </motion.div>
+          )}
           
           {match.status === 'Live' && (
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-full">
@@ -699,11 +750,11 @@ export default function MatchDetail() {
           className="max-w-4xl mx-auto mb-12"
         >
           {/* Desktop View - Side by Side */}
-          <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] gap-8 items-center">
+          <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] gap-8 items-stretch">
             {/* Team A */}
-            <div className="glass-card hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 rounded-xl relative overflow-hidden group">
+            <div className="glass-card hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 rounded-xl relative overflow-hidden group min-h-[320px]">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative z-10 text-center">
+              <div className="relative z-10 text-center flex flex-col items-center justify-center h-full">
                 <div className="text-8xl font-bold text-primary mb-4 text-glow">{getScore('A')}</div>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <h2 className="text-2xl font-bold">{getTeamDisplayName(match.teamA)}</h2>
@@ -721,9 +772,9 @@ export default function MatchDetail() {
             </div>
 
             {/* Team B */}
-            <div className="glass-card hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 rounded-xl relative overflow-hidden group">
+            <div className="glass-card hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 rounded-xl relative overflow-hidden group min-h-[320px]">
               <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative z-10 text-center">
+              <div className="relative z-10 text-center flex flex-col items-center justify-center h-full">
                 <div className="text-8xl font-bold text-primary mb-4 text-glow">{getScore('B')}</div>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <h2 className="text-2xl font-bold">{getTeamDisplayName(match.teamB)}</h2>
@@ -736,41 +787,43 @@ export default function MatchDetail() {
             </div>
           </div>
 
-          {/* Mobile View - Stacked */}
-          <div className="md:hidden space-y-6">
-            {/* Team A */}
-            <div className="glass-card flex items-center justify-between p-6 rounded-xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative z-10 flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl md:text-3xl font-bold">{getTeamDisplayName(match.teamA)}</h2>
-                  {isWinner(match.teamA._id) && (
-                    <Trophy className="w-6 h-6 text-yellow-500 animate-pulse" />
-                  )}
+          {/* Mobile View - Side by Side */}
+          <div className="md:hidden">
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
+              {/* Team A */}
+              <div className="glass-card flex flex-col items-center justify-center p-4 rounded-xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10 text-center w-full">
+                  <div className="text-5xl font-bold text-primary mb-2 text-glow">{getScore('A')}</div>
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <h2 className="text-lg font-bold truncate">{getTeamDisplayName(match.teamA)}</h2>
+                    {isWinner(match.teamA._id) && (
+                      <Trophy className="w-4 h-4 text-yellow-500 animate-pulse flex-shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-xs truncate">{getTeamSubtitle(match.teamA)}</p>
                 </div>
-                <p className="text-gray-400">{getTeamSubtitle(match.teamA)}</p>
               </div>
-              <div className="text-5xl md:text-6xl font-bold text-primary text-glow">{getScore('A')}</div>
-            </div>
 
-            {/* VS */}
-            <div className="text-center text-gray-600 font-bold text-2xl">
-              <img src="/vs.webp" alt="VS" className="w-16 h-16 mx-auto opacity-60 drop-shadow-[0_0_12px_rgba(255,255,255,0.5)]" />
-            </div>
+              {/* VS Icon */}
+              <div className="flex items-center justify-center flex-shrink-0">
+                <img src="/vs.webp" alt="VS" className="w-12 h-12 opacity-60 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+              </div>
 
-            {/* Team B */}
-            <div className="glass-card flex items-center justify-between p-6 rounded-xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative z-10 flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl md:text-3xl font-bold">{getTeamDisplayName(match.teamB)}</h2>
-                  {isWinner(match.teamB._id) && (
-                    <Trophy className="w-6 h-6 text-yellow-500 animate-pulse" />
-                  )}
+              {/* Team B */}
+              <div className="glass-card flex flex-col items-center justify-center p-4 rounded-xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10 text-center w-full">
+                  <div className="text-5xl font-bold text-primary mb-2 text-glow">{getScore('B')}</div>
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <h2 className="text-lg font-bold truncate">{getTeamDisplayName(match.teamB)}</h2>
+                    {isWinner(match.teamB._id) && (
+                      <Trophy className="w-4 h-4 text-yellow-500 animate-pulse flex-shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-xs truncate">{getTeamSubtitle(match.teamB)}</p>
                 </div>
-                <p className="text-gray-400">{getTeamSubtitle(match.teamB)}</p>
               </div>
-              <div className="text-5xl md:text-6xl font-bold text-primary text-glow">{getScore('B')}</div>
             </div>
           </div>
 
@@ -779,7 +832,21 @@ export default function MatchDetail() {
             <div className="mt-8 glass-card p-6 rounded-xl relative overflow-hidden group max-w-4xl mx-auto">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10">
-                <p className="text-center text-gray-400 text-sm mb-3">Current Set Score</p>
+                {(() => {
+                  // Find the current active set (first set without a winner)
+                  const currentSetIndex = match.result.tableTennis.sets.findIndex(set => !set.winner);
+                  const activeSetIndex = currentSetIndex !== -1 ? currentSetIndex : match.result.tableTennis.sets.length - 1;
+                  const currentSet = match.result.tableTennis.sets[activeSetIndex];
+                  if (!currentSet) return null;
+                  
+                  const setNumber = activeSetIndex + 1; // 1-indexed
+                  
+                  return (
+                    <>
+                      <p className="text-center text-gray-400 text-sm mb-3">Current Set Score (Set {setNumber})</p>
+                    </>
+                  );
+                })()}
                 <div className="flex items-center justify-center gap-6">
                   {(() => {
                     // Find the current active set (first set without a winner)

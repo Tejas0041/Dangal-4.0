@@ -202,11 +202,68 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Status is required' });
     }
 
+    // Fetch the current match to check scores
+    const currentMatch = await Schedule.findById(req.params.id)
+      .populate('game', 'name');
+
+    if (!currentMatch) {
+      return res.status(404).json({ message: 'Match not found' });
+    }
+
     const updateData = { status };
     
     // If winner is provided, update the result.winner field
     if (winner) {
       updateData['result.winner'] = winner;
+    }
+    
+    // If changing to Live status, clear the winner
+    if (status === 'Live') {
+      updateData['result.winner'] = null;
+    }
+
+    // If changing to Completed status and no winner provided, auto-calculate winner
+    if (status === 'Completed' && !winner) {
+      let autoWinner = null;
+
+      // For Table Tennis, check sets won
+      if (currentMatch.game.name.toUpperCase() === 'TABLE TENNIS' && currentMatch.result?.tableTennis) {
+        const setsWonA = currentMatch.result.tableTennis.setsWonA || 0;
+        const setsWonB = currentMatch.result.tableTennis.setsWonB || 0;
+        
+        // Determine winner based on sets won
+        if (setsWonA > setsWonB) {
+          autoWinner = currentMatch.teamA._id || currentMatch.teamA;
+        } else if (setsWonB > setsWonA) {
+          autoWinner = currentMatch.teamB._id || currentMatch.teamB;
+        }
+      }
+      // For Kabaddi, check team scores
+      else if (currentMatch.game.name.toUpperCase() === 'KABADDI' && currentMatch.result) {
+        const scoreA = currentMatch.result.teamAScore || 0;
+        const scoreB = currentMatch.result.teamBScore || 0;
+        
+        if (scoreA > scoreB) {
+          autoWinner = currentMatch.teamA._id || currentMatch.teamA;
+        } else if (scoreB > scoreA) {
+          autoWinner = currentMatch.teamB._id || currentMatch.teamB;
+        }
+      }
+      // For Tug of War, check rounds won
+      else if (currentMatch.game.name.toUpperCase() === 'TUG OF WAR' && currentMatch.result?.tugOfWar) {
+        const roundsWonA = currentMatch.result.tugOfWar.roundsWonA || 0;
+        const roundsWonB = currentMatch.result.tugOfWar.roundsWonB || 0;
+        
+        if (roundsWonA > roundsWonB) {
+          autoWinner = currentMatch.teamA._id || currentMatch.teamA;
+        } else if (roundsWonB > roundsWonA) {
+          autoWinner = currentMatch.teamB._id || currentMatch.teamB;
+        }
+      }
+
+      if (autoWinner) {
+        updateData['result.winner'] = autoWinner;
+      }
     }
 
     const match = await Schedule.findByIdAndUpdate(
@@ -243,11 +300,12 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
       io.to('live-scores').emit('matchUpdated', match);
       
       // If match is completed and has a winner, emit matchWon
-      if (status === 'Completed' && winner) {
-        console.log('Emitting matchWon from status update:', winner);
+      if (status === 'Completed' && (winner || updateData['result.winner'])) {
+        const finalWinner = winner || updateData['result.winner'];
+        console.log('Emitting matchWon from status update:', finalWinner);
         io.to('live-scores').emit('matchWon', {
           matchId: match._id.toString(),
-          winner: winner
+          winner: finalWinner
         });
       }
     }
@@ -357,10 +415,23 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
       const setsWonIncrementA = tableTennis.setsWonA - prevSetsWonA;
       const setsWonIncrementB = tableTennis.setsWonB - prevSetsWonB;
 
-      if (setsWonIncrementA > 0) {
-        setWon = { team: 'A', setNumber: tableTennis.setsWonA };
-      } else if (setsWonIncrementB > 0) {
-        setWon = { team: 'B', setNumber: tableTennis.setsWonB };
+      // Find which set was just won by checking for new winners
+      if (setsWonIncrementA > 0 || setsWonIncrementB > 0) {
+        const prevSets = currentMatch.result?.tableTennis?.sets || [];
+        // Find the set that just got a winner
+        for (let i = 0; i < tableTennis.sets.length; i++) {
+          const currentSet = tableTennis.sets[i];
+          const prevSet = prevSets[i];
+          
+          // If this set has a winner now but didn't before, this is the set that was won
+          if (currentSet.winner && (!prevSet || !prevSet.winner)) {
+            setWon = { 
+              team: currentSet.winner === currentMatch.teamA._id.toString() ? 'A' : 'B', 
+              setNumber: i + 1  // Set number is 1-indexed (1, 2, 3)
+            };
+            break;
+          }
+        }
       }
 
       // Calculate point increments in the current set

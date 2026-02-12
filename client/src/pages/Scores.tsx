@@ -233,7 +233,15 @@ export default function Scores() {
   useEffect(() => {
     fetchMatches();
 
-    // Log socket connection status
+    // Connect to socket if not connected
+    if (!socket.connected) {
+      console.log('Scores page: Socket not connected, connecting...');
+      socket.connect();
+    }
+
+    // Join the live-scores room
+    socket.emit('join-scores');
+    console.log('Scores page: Joined live-scores room');
     console.log('Scores page: Socket connected:', socket.connected);
     
     // Socket listeners
@@ -248,6 +256,8 @@ export default function Scores() {
     return () => {
       socket.off('matchUpdated', handleMatchUpdate);
       socket.off('scoreUpdate', handleScoreUpdate);
+      socket.emit('leave-scores');
+      console.log('Scores page: Left live-scores room');
     };
   }, []);
 
@@ -286,7 +296,7 @@ export default function Scores() {
           return prev.map(m => m._id === updatedMatch._id ? updatedMatch : m);
         } else {
           console.log('Adding new live match');
-          return [...prev, updatedMatch];
+          return [updatedMatch, ...prev]; // Add to beginning for newest first
         }
       });
       // Remove from completed if it was there
@@ -301,7 +311,7 @@ export default function Scores() {
           return prev.map(m => m._id === updatedMatch._id ? updatedMatch : m);
         } else {
           console.log('Adding new completed match');
-          return [...prev, updatedMatch];
+          return [updatedMatch, ...prev]; // Add to beginning for newest first
         }
       });
       // Remove from live if it was there
@@ -499,15 +509,25 @@ export default function Scores() {
                       {/* Score Display */}
                       <div className="flex flex-col items-center gap-1 flex-shrink-0">
                         <div className="flex items-center gap-2 md:gap-4 relative">
-                          <div className="text-center relative">
-                            <div className="text-2xl md:text-4xl font-bold text-primary">{getScore(match, 'A')}</div>
+                          <div className="text-center relative min-h-[3rem] flex items-center justify-center">
+                            <motion.div 
+                              key={`score-a-${getScore(match, 'A')}`}
+                              initial={{ scale: 1 }}
+                              animate={{ scale: scoreUpdates[`${match._id}-A`] ? [1, 1.3, 1] : 1 }}
+                              transition={{ duration: 0.3 }}
+                              className="text-2xl md:text-4xl font-bold text-primary"
+                            >
+                              {getScore(match, 'A')}
+                            </motion.div>
                             <AnimatePresence>
                               {scoreUpdates[`${match._id}-A`] && (
                                 <motion.div
-                                  initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                                  animate={{ opacity: 1, y: -20, scale: 1 }}
-                                  exit={{ opacity: 0, y: -40 }}
-                                  className="absolute -top-8 left-1/2 -translate-x-1/2 text-green-400 font-bold text-xl"
+                                  initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                                  animate={{ opacity: 1, y: -35, scale: 1 }}
+                                  exit={{ opacity: 0, y: -50, scale: 0.8 }}
+                                  transition={{ duration: 0.5 }}
+                                  className="absolute top-0 left-1/2 -translate-x-1/2 text-green-400 font-bold text-lg md:text-xl whitespace-nowrap pointer-events-none"
+                                  style={{ textShadow: '0 0 10px rgba(34, 197, 94, 0.5)' }}
                                 >
                                   {scoreUpdates[`${match._id}-A`]}
                                 </motion.div>
@@ -515,15 +535,25 @@ export default function Scores() {
                             </AnimatePresence>
                           </div>
                           <div className="text-gray-600 text-xl md:text-2xl font-bold">-</div>
-                          <div className="text-center relative">
-                            <div className="text-2xl md:text-4xl font-bold text-primary">{getScore(match, 'B')}</div>
+                          <div className="text-center relative min-h-[3rem] flex items-center justify-center">
+                            <motion.div 
+                              key={`score-b-${getScore(match, 'B')}`}
+                              initial={{ scale: 1 }}
+                              animate={{ scale: scoreUpdates[`${match._id}-B`] ? [1, 1.3, 1] : 1 }}
+                              transition={{ duration: 0.3 }}
+                              className="text-2xl md:text-4xl font-bold text-primary"
+                            >
+                              {getScore(match, 'B')}
+                            </motion.div>
                             <AnimatePresence>
                               {scoreUpdates[`${match._id}-B`] && (
                                 <motion.div
-                                  initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                                  animate={{ opacity: 1, y: -20, scale: 1 }}
-                                  exit={{ opacity: 0, y: -40 }}
-                                  className="absolute -top-8 left-1/2 -translate-x-1/2 text-green-400 font-bold text-xl"
+                                  initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                                  animate={{ opacity: 1, y: -35, scale: 1 }}
+                                  exit={{ opacity: 0, y: -50, scale: 0.8 }}
+                                  transition={{ duration: 0.5 }}
+                                  className="absolute top-0 left-1/2 -translate-x-1/2 text-green-400 font-bold text-lg md:text-xl whitespace-nowrap pointer-events-none"
+                                  style={{ textShadow: '0 0 10px rgba(34, 197, 94, 0.5)' }}
                                 >
                                   {scoreUpdates[`${match._id}-B`]}
                                 </motion.div>
