@@ -70,7 +70,8 @@ const Registrations = () => {
   };
 
   const getHallName = (hallId) => {
-    if (typeof hallId === 'object') return hallId.name;
+    if (!hallId) return 'Unknown';
+    if (typeof hallId === 'object' && hallId.name) return hallId.name;
     const hall = halls.find(h => h._id === hallId);
     return hall?.name || 'Unknown';
   };

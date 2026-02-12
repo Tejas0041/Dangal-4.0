@@ -233,9 +233,17 @@ export default function Scores() {
   useEffect(() => {
     fetchMatches();
 
+    // Log socket connection status
+    console.log('Scores page: Socket connected:', socket.connected);
+    
     // Socket listeners
     socket.on('matchUpdated', handleMatchUpdate);
     socket.on('scoreUpdate', handleScoreUpdate);
+
+    // Log when events are received
+    socket.on('matchUpdated', (match) => {
+      console.log('Scores page: matchUpdated event received:', match._id, match.status);
+    });
 
     return () => {
       socket.off('matchUpdated', handleMatchUpdate);
@@ -267,13 +275,17 @@ export default function Scores() {
   };
 
   const handleMatchUpdate = (updatedMatch: Match) => {
+    console.log('Scores page: Handling match update:', updatedMatch._id, 'Status:', updatedMatch.status);
+    
     // Update or add to live matches if status is Live
     if (updatedMatch.status === 'Live') {
       setLiveMatches(prev => {
         const exists = prev.find(m => m._id === updatedMatch._id);
         if (exists) {
+          console.log('Updating existing live match');
           return prev.map(m => m._id === updatedMatch._id ? updatedMatch : m);
         } else {
+          console.log('Adding new live match');
           return [...prev, updatedMatch];
         }
       });
@@ -285,8 +297,10 @@ export default function Scores() {
       setCompletedMatches(prev => {
         const exists = prev.find(m => m._id === updatedMatch._id);
         if (exists) {
+          console.log('Updating existing completed match');
           return prev.map(m => m._id === updatedMatch._id ? updatedMatch : m);
         } else {
+          console.log('Adding new completed match');
           return [...prev, updatedMatch];
         }
       });
@@ -295,6 +309,7 @@ export default function Scores() {
     }
     // If status is Scheduled or Cancelled, remove from both
     else {
+      console.log('Removing match from both lists (status:', updatedMatch.status, ')');
       setLiveMatches(prev => prev.filter(m => m._id !== updatedMatch._id));
       setCompletedMatches(prev => prev.filter(m => m._id !== updatedMatch._id));
     }

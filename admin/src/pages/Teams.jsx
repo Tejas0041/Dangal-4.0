@@ -46,13 +46,15 @@ const Teams = () => {
   };
 
   const getHallName = (hallId) => {
-    if (typeof hallId === 'object') return hallId.name;
+    if (!hallId) return 'Unknown';
+    if (typeof hallId === 'object' && hallId.name) return hallId.name;
     const hall = halls.find(h => h._id === hallId);
     return hall?.name || 'Unknown';
   };
 
   const getGameName = (gameId) => {
-    if (typeof gameId === 'object') return gameId.name;
+    if (!gameId) return 'Unknown';
+    if (typeof gameId === 'object' && gameId.name) return gameId.name;
     const game = games.find(g => g._id === gameId);
     return game?.name || 'Unknown';
   };

@@ -363,9 +363,16 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
         setWon = { team: 'B', setNumber: tableTennis.setsWonB };
       }
 
-      // Calculate point increments in the current set (last set in array)
+      // Calculate point increments in the current set
+      // Find the active set (first set without a winner, or last set if all have winners)
       if (tableTennis.sets && tableTennis.sets.length > 0) {
-        const currentSetIndex = tableTennis.sets.length - 1;
+        let currentSetIndex = tableTennis.sets.findIndex(set => !set.winner);
+        
+        // If all sets have winners, use the last set (for undo scenarios)
+        if (currentSetIndex === -1) {
+          currentSetIndex = tableTennis.sets.length - 1;
+        }
+        
         const currentSet = tableTennis.sets[currentSetIndex];
         const prevSets = currentMatch.result?.tableTennis?.sets || [];
         const prevSet = prevSets[currentSetIndex] || { teamAScore: 0, teamBScore: 0 };
