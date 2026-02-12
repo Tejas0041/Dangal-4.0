@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSocket } from '@/lib/socket';
+import { socket } from '@/lib/socket';
 
 interface Score {
   matchId: string;
@@ -13,12 +13,10 @@ interface Score {
 }
 
 export const useLiveScores = () => {
-  const [scores, setScores] = useState<Score[]>([]);
+  const [scores, setScores] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const socket = getSocket();
-
     socket.on('connect', () => {
       setConnected(true);
       // Join the live scores room
@@ -29,35 +27,21 @@ export const useLiveScores = () => {
       setConnected(false);
     });
 
-    // Listen for score updates
-    socket.on('score-update', (data: Score) => {
-      setScores((prevScores) => {
-        const index = prevScores.findIndex((s) => s.matchId === data.matchId);
-        if (index !== -1) {
-          // Update existing score
-          const newScores = [...prevScores];
-          newScores[index] = data;
-          return newScores;
-        } else {
-          // Add new score
-          return [...prevScores, data];
-        }
-      });
-    });
-
-    // Listen for all scores (initial load)
-    socket.on('all-scores', (data: Score[]) => {
-      setScores(data);
+    // Listen for match updates
+    socket.on('matchUpdated', (data: any) => {
+      setScores((prevScores) => ({
+        ...prevScores,
+        [data._id]: data
+      }));
     });
 
     return () => {
       socket.emit('leave-scores');
       socket.off('connect');
       socket.off('disconnect');
-      socket.off('score-update');
-      socket.off('all-scores');
+      socket.off('matchUpdated');
     };
   }, []);
 
-  return { scores, connected };
+  return scores;
 };

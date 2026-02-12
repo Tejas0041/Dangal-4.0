@@ -3,12 +3,15 @@ import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Loader from '../components/Loader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ScoreManagement = () => {
   const [activeTab, setActiveTab] = useState('live');
   const [matches, setMatches] = useState([]);
+  const [liveMatchesCount, setLiveMatchesCount] = useState(0);
+  const [completedMatchesCount, setCompletedMatchesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [selectedMatch, setSelectedMatch] = useState(null);
@@ -16,6 +19,16 @@ const ScoreManagement = () => {
   const [matchToEnd, setMatchToEnd] = useState(null);
   const [showWinnerSelect, setShowWinnerSelect] = useState(false);
   const [tieMatchData, setTieMatchData] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isPendingSave, setIsPendingSave] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchMatches();
@@ -25,6 +38,15 @@ const ScoreManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/api/schedule`, { withCredentials: true });
+      
+      // Count live and completed matches
+      const liveCount = response.data.filter(match => match.status === 'Live').length;
+      const completedCount = response.data.filter(match => match.status === 'Completed').length;
+      
+      setLiveMatchesCount(liveCount);
+      setCompletedMatchesCount(completedCount);
+      
+      // Filter matches based on active tab
       const filteredMatches = response.data.filter(match => 
         activeTab === 'live' ? match.status === 'Live' : match.status === 'Completed'
       );
@@ -162,37 +184,69 @@ const ScoreManagement = () => {
   if (selectedMatch) {
     return (
       <AdminLayout>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          {/* Back Button */}
-          <button
-            onClick={() => setSelectedMatch(null)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.5rem',
-              background: 'rgba(255, 215, 0, 0.1)',
-              border: '1px solid rgba(255, 215, 0, 0.3)',
-              borderRadius: '0.5rem',
-              color: '#FFD700',
-              cursor: 'pointer',
-              marginBottom: '2rem',
-              fontWeight: '600',
-              transition: 'all 0.3s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)';
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Back to Matches
-          </button>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0' : '0' }}>
+          {/* Back Button and Saving Indicator */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: isMobile ? '1rem' : '2rem',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => {
+                setSelectedMatch(null);
+                fetchMatches(); // Refresh the matches list
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.5rem',
+                background: 'rgba(255, 215, 0, 0.1)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: isMobile ? '0.9rem' : '1rem',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)';
+              }}
+            >
+              <svg width={isMobile ? "18" : "20"} height={isMobile ? "18" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              Back to Matches
+            </button>
+            
+            {isPendingSave && (
+              <div style={{
+                padding: isMobile ? '0.5rem 0.875rem' : '0.5rem 1rem',
+                background: 'rgba(59, 130, 246, 0.15)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#60a5fa',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="15"></circle>
+                </svg>
+                Saving...
+              </div>
+            )}
+          </div>
 
           {selectedMatch.game.name.toUpperCase() === 'KABADDI' ? (
             <KabaddiScoreCard 
@@ -201,6 +255,8 @@ const ScoreManagement = () => {
               endMatch={(match, scores) => endMatch(match, scores)}
               getTeamFullName={getTeamFullName}
               isLive={selectedMatch.status === 'Live'}
+              isMobile={isMobile}
+              onPendingUpdateChange={setIsPendingSave}
             />
           ) : selectedMatch.game.name.toUpperCase() === 'TABLE TENNIS' ? (
             <TableTennisScoreCard 
@@ -209,6 +265,8 @@ const ScoreManagement = () => {
               endMatch={(match, setsWonA, setsWonB) => endMatch(match, { setsWonA, setsWonB })}
               getTeamFullName={getTeamFullName}
               isLive={selectedMatch.status === 'Live'}
+              isMobile={isMobile}
+              onPendingUpdateChange={setIsPendingSave}
             />
           ) : selectedMatch.game.name.toUpperCase() === 'TUG OF WAR' ? (
             <TugOfWarScoreCard 
@@ -219,6 +277,7 @@ const ScoreManagement = () => {
               activeTab={activeTab}
               getTeamFullName={getTeamFullName}
               isLive={selectedMatch.status === 'Live'}
+              isMobile={isMobile}
             />
           ) : (
             <div style={{
@@ -269,16 +328,6 @@ const ScoreManagement = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <div style={{ color: '#FFD700', fontSize: '1.25rem' }}>Loading...</div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -319,7 +368,7 @@ const ScoreManagement = () => {
               marginBottom: '-2px'
             }}
           >
-            Live Matches ({matches.length})
+            Live Matches ({liveMatchesCount})
           </button>
           <button
             onClick={() => setActiveTab('completed')}
@@ -336,12 +385,14 @@ const ScoreManagement = () => {
               marginBottom: '-2px'
             }}
           >
-            Completed Matches
+            Completed Matches ({completedMatchesCount})
           </button>
         </div>
 
         {/* Matches List */}
-        {matches.length === 0 ? (
+        {loading ? (
+          <Loader />
+        ) : matches.length === 0 ? (
           <div style={{
             background: 'rgba(0, 0, 0, 0.4)',
             backdropFilter: 'blur(20px)',
@@ -611,10 +662,11 @@ const ScoreManagement = () => {
 };
 
 // Tug of War Score Card Component
-const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, activeTab, getTeamFullName, isLive }) => {
+const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, activeTab, getTeamFullName, isLive, isMobile = false }) => {
   const [selectedWinner, setSelectedWinner] = useState(match.result?.winner?._id || match.result?.winner || null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editedStatus, setEditedStatus] = useState(match.status);
 
   // Sync selectedWinner with match.result.winner when match changes
   useEffect(() => {
@@ -629,6 +681,56 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
 
   const handleSelectWinner = (teamId) => {
     setSelectedWinner(teamId);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    setEditedStatus(newStatus);
+    
+    // If changing from Completed to Live, clear the winner
+    if (match.status === 'Completed' && newStatus === 'Live') {
+      setSelectedWinner(null);
+      try {
+        // Clear winner in database
+        await axios.patch(
+          `${API_URL}/api/schedule/${match._id}/score`,
+          { winner: null },
+          { withCredentials: true }
+        );
+      } catch (error) {
+        console.error('Error clearing winner:', error);
+      }
+    }
+  };
+
+  const handleDoneEditing = async () => {
+    if (isSubmitting) return;
+    
+    // If status changed, update it
+    if (editedStatus !== match.status) {
+      setIsSubmitting(true);
+      try {
+        await axios.patch(
+          `${API_URL}/api/schedule/${match._id}/status`,
+          { status: editedStatus, winner: selectedWinner },
+          { withCredentials: true }
+        );
+        
+        // Update match object
+        match.status = editedStatus;
+        
+        // Reload to refresh the list
+        window.location.reload();
+      } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Failed to update status: ' + (error.response?.data?.message || error.message));
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+    
+    // Just exit edit mode
+    setIsEditing(false);
   };
 
   const handleSubmit = async () => {
@@ -685,47 +787,81 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
       position: 'relative'
     }}>
       {/* Match Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '2rem',
-        paddingBottom: '1rem',
-        borderBottom: '1px solid rgba(255, 215, 0, 0.2)'
-      }}>
-        <div>
-          <h3 style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        {/* Title */}
+        <div style={{ marginBottom: '1rem' }}>
+          <h3 style={{ 
+            color: '#FFD700', 
+            fontSize: isMobile ? '1.25rem' : '1.5rem', 
+            fontWeight: 'bold', 
+            marginBottom: '0.5rem' 
+          }}>
             {match.game.name} - Match {String(match.matchNumber).padStart(2, '0')}
           </h3>
           <p style={{ color: '#888', fontSize: '0.9rem' }}>{match.round}</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{
-            padding: '0.5rem 1rem',
-            background: isLive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
-            border: `1px solid ${isLive ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
-            borderRadius: '0.5rem',
-            color: isLive ? '#4ade80' : '#eab308',
-            fontWeight: 'bold'
-          }}>
-            {match.status}
-          </div>
+
+        {/* Action Buttons */}
+        <div style={{ 
+          display: 'flex', 
+          gap: isMobile ? '0.5rem' : '1rem', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          paddingBottom: '1rem',
+          borderBottom: '1px solid rgba(255, 215, 0, 0.2)'
+        }}>
+          {/* Status Display/Dropdown */}
+          {isEditing ? (
+            <select
+              value={editedStatus}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              style={{
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                background: 'rgba(255, 215, 0, 0.15)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="Scheduled" style={{ background: '#1a1a1a', color: '#FFD700' }}>Scheduled</option>
+              <option value="Live" style={{ background: '#1a1a1a', color: '#FFD700' }}>Live</option>
+              <option value="Completed" style={{ background: '#1a1a1a', color: '#FFD700' }}>Completed</option>
+              <option value="Cancelled" style={{ background: '#1a1a1a', color: '#FFD700' }}>Cancelled</option>
+            </select>
+          ) : (
+            <div style={{
+              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+              background: isLive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+              border: `1px solid ${isLive ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
+              borderRadius: '0.5rem',
+              color: isLive ? '#4ade80' : '#eab308',
+              fontWeight: 'bold',
+              fontSize: isMobile ? '0.8rem' : '0.9rem'
+            }}>
+              {match.status}
+            </div>
+          )}
+          
           {!isLive && !isEditing && (
             <button
               onClick={() => setIsEditing(true)}
               style={{
-                padding: '0.5rem 1.5rem',
+                padding: isMobile ? '0.4rem 0.875rem' : '0.5rem 1.5rem',
                 background: 'rgba(59, 130, 246, 0.2)',
                 border: '1px solid rgba(59, 130, 246, 0.4)',
                 borderRadius: '0.5rem',
                 color: '#3b82f6',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
                 transition: 'all 0.3s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.35rem'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
@@ -736,11 +872,60 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
               Edit Winner
+            </button>
+          )}
+          {isEditing && (
+            <button
+              onClick={handleDoneEditing}
+              disabled={isSubmitting}
+              style={{
+                padding: isMobile ? '0.4rem 0.875rem' : '0.5rem 1.5rem',
+                background: isSubmitting ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.2)',
+                border: '1px solid rgba(34, 197, 94, 0.4)',
+                borderRadius: '0.5rem',
+                color: '#4ade80',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                opacity: isSubmitting ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!isSubmitting) {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSubmitting) {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
+              }}
+            >
+              {isSubmitting ? (
+                <>
+                  <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                    <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="15"></circle>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Done Editing
+                </>
+              )}
             </button>
           )}
         </div>
@@ -748,17 +933,18 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
 
       {/* Teams Display */}
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr auto 1fr', 
-        gap: '3rem', 
+        display: isMobile ? 'flex' : 'grid',
+        flexDirection: isMobile ? 'column' : undefined,
+        gridTemplateColumns: isMobile ? undefined : '1fr auto 1fr', 
+        gap: isMobile ? '1.5rem' : '3rem', 
         alignItems: 'center',
-        marginTop: '3rem'
+        marginTop: isMobile ? '2rem' : '3rem'
       }}>
         {/* Team A */}
         <div 
           onClick={() => (isLive || isEditing) && handleSelectWinner(match.teamA._id)}
           style={{
-            padding: '2rem',
+            padding: isMobile ? '1.5rem' : '2rem',
             background: isWinner(match.teamA._id)
               ? 'rgba(255, 215, 0, 0.2)' 
               : 'rgba(255, 255, 255, 0.05)',
@@ -812,7 +998,12 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
           <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>
             TEAM A
           </div>
-          <div style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
+          <div style={{ 
+            color: '#fff', 
+            fontSize: isMobile ? '1.1rem' : '1.5rem', 
+            fontWeight: 'bold',
+            wordBreak: 'break-word'
+          }}>
             {getTeamFullName(match.teamA)}
           </div>
         </div>
@@ -820,9 +1011,10 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
         {/* VS Divider */}
         <div style={{
           color: '#FFD700',
-          fontSize: '2rem',
+          fontSize: isMobile ? '1.5rem' : '2rem',
           fontWeight: 'bold',
-          opacity: 0.5
+          opacity: 0.5,
+          textAlign: 'center'
         }}>
           VS
         </div>
@@ -831,7 +1023,7 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
         <div 
           onClick={() => (isLive || isEditing) && handleSelectWinner(match.teamB._id)}
           style={{
-            padding: '2rem',
+            padding: isMobile ? '1.5rem' : '2rem',
             background: isWinner(match.teamB._id)
               ? 'rgba(255, 215, 0, 0.2)' 
               : 'rgba(255, 255, 255, 0.05)',
@@ -885,7 +1077,12 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
           <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>
             TEAM B
           </div>
-          <div style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
+          <div style={{ 
+            color: '#fff', 
+            fontSize: isMobile ? '1.1rem' : '1.5rem', 
+            fontWeight: 'bold',
+            wordBreak: 'break-word'
+          }}>
             {getTeamFullName(match.teamB)}
           </div>
         </div>
@@ -995,7 +1192,7 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
 };
 
 // Kabaddi Score Card Component
-const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLive }) => {
+const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLive, isMobile = false, onPendingUpdateChange }) => {
   const [scores, setScores] = useState({
     teamA: {
       raidPoints: 0,
@@ -1014,6 +1211,8 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
   const [updateTimeout, setUpdateTimeout] = useState(null); // Debounce timeout
   const [pendingUpdate, setPendingUpdate] = useState(false); // Track if update is pending
   const [lastMatchId, setLastMatchId] = useState(null); // Track match ID changes
+  const [isEditing, setIsEditing] = useState(false); // Track edit mode for completed matches
+  const [editedStatus, setEditedStatus] = useState(match.status); // Track edited status
 
   // Load undo history from localStorage on mount
   useEffect(() => {
@@ -1076,8 +1275,8 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
   };
 
   const handleIncrement = (team, field) => {
-    // Store previous state in history (only for live matches)
-    if (isLive) {
+    // Store previous state in history (only for live matches or editing)
+    if (isLive || isEditing) {
       setUndoHistory(prev => [...prev, { ...scores }]);
     }
 
@@ -1097,6 +1296,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
 
     // Set pending update indicator
     setPendingUpdate(true);
+    if (onPendingUpdateChange) onPendingUpdateChange(true);
 
     // Debounce the server update (800ms delay)
     const timeout = setTimeout(() => {
@@ -1105,9 +1305,97 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
         teamBScore: newScores.teamB
       });
       setPendingUpdate(false);
+      if (onPendingUpdateChange) onPendingUpdateChange(false);
     }, 800);
 
     setUpdateTimeout(timeout);
+  };
+
+  const handleDecrement = (team, field) => {
+    // Only allow decrement if value is greater than 0
+    if (scores[team][field] <= 0) return;
+
+    // Store previous state in history
+    if (isEditing) {
+      setUndoHistory(prev => [...prev, { ...scores }]);
+    }
+
+    const newScores = {
+      ...scores,
+      [team]: {
+        ...scores[team],
+        [field]: scores[team][field] - 1
+      }
+    };
+    setScores(newScores);
+    
+    // Clear existing timeout
+    if (updateTimeout) {
+      clearTimeout(updateTimeout);
+    }
+
+    // Set pending update indicator
+    setPendingUpdate(true);
+    if (onPendingUpdateChange) onPendingUpdateChange(true);
+
+    // Debounce the server update (800ms delay)
+    const timeout = setTimeout(() => {
+      updateScore(match._id, {
+        teamAScore: newScores.teamA,
+        teamBScore: newScores.teamB
+      });
+      setPendingUpdate(false);
+      if (onPendingUpdateChange) onPendingUpdateChange(false);
+    }, 800);
+
+    setUpdateTimeout(timeout);
+  };
+
+  const handleChangeStatus = async () => {
+    const statuses = ['Scheduled', 'Live', 'Completed'];
+    const currentIndex = statuses.indexOf(match.status);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    
+    const confirmed = window.confirm(`Change match status from "${match.status}" to "${nextStatus}"?`);
+    if (!confirmed) return;
+
+    try {
+      await axios.patch(
+        `${API_URL}/api/schedule/${match._id}/status`,
+        { status: nextStatus },
+        { withCredentials: true }
+      );
+      
+      // Reload the page to reflect the new status
+      window.location.reload();
+    } catch (error) {
+      console.error('Error changing status:', error);
+      alert('Failed to change status: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleDoneEditing = async () => {
+    // Save status if it was changed
+    if (editedStatus !== match.status) {
+      try {
+        await axios.patch(
+          `${API_URL}/api/schedule/${match._id}/status`,
+          { status: editedStatus },
+          { withCredentials: true }
+        );
+        
+        // Reload the page to reflect the new status
+        window.location.reload();
+        return;
+      } catch (error) {
+        console.error('Error changing status:', error);
+        alert('Failed to change status: ' + (error.response?.data?.message || error.message));
+        return;
+      }
+    }
+    
+    // Just exit edit mode if status wasn't changed
+    setIsEditing(false);
   };
 
   const handleUndo = () => {
@@ -1129,6 +1417,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
 
     // Set pending update indicator
     setPendingUpdate(true);
+    if (onPendingUpdateChange) onPendingUpdateChange(true);
 
     // Debounce the server update (800ms delay)
     const timeout = setTimeout(() => {
@@ -1137,6 +1426,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
         teamBScore: previousState.teamB
       });
       setPendingUpdate(false);
+      if (onPendingUpdateChange) onPendingUpdateChange(false);
     }, 800);
 
     setUpdateTimeout(timeout);
@@ -1167,66 +1457,146 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
       position: 'relative'
     }}>
       {/* Match Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '2rem',
-        paddingBottom: '1rem',
-        borderBottom: '1px solid rgba(255, 215, 0, 0.2)'
-      }}>
-        <div>
-          <h3 style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        {/* Title */}
+        <div style={{ marginBottom: '1rem' }}>
+          <h3 style={{ 
+            color: '#FFD700', 
+            fontSize: isMobile ? '1.25rem' : '1.5rem', 
+            fontWeight: 'bold', 
+            marginBottom: '0.5rem' 
+          }}>
             {match.game.name} - Match {String(match.matchNumber).padStart(2, '0')}
           </h3>
           <p style={{ color: '#888', fontSize: '0.9rem' }}>{match.round}</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{
-            padding: '0.5rem 1rem',
-            background: 'rgba(34, 197, 94, 0.15)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            borderRadius: '0.5rem',
-            color: '#4ade80',
-            fontWeight: 'bold'
-          }}>
-            {match.status}
-          </div>
-          {pendingUpdate && (
+
+        {/* Action Buttons */}
+        <div style={{ 
+          display: 'flex', 
+          gap: isMobile ? '0.5rem' : '1rem', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          paddingBottom: '1rem',
+          borderBottom: '1px solid rgba(255, 215, 0, 0.2)'
+        }}>
+          {/* Status Display/Dropdown */}
+          {isEditing ? (
+            <select
+              value={editedStatus}
+              onChange={(e) => setEditedStatus(e.target.value)}
+              style={{
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                background: 'rgba(255, 215, 0, 0.15)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="Scheduled" style={{ background: '#1a1a1a', color: '#FFD700' }}>Scheduled</option>
+              <option value="Live" style={{ background: '#1a1a1a', color: '#FFD700' }}>Live</option>
+              <option value="Completed" style={{ background: '#1a1a1a', color: '#FFD700' }}>Completed</option>
+              <option value="Cancelled" style={{ background: '#1a1a1a', color: '#FFD700' }}>Cancelled</option>
+            </select>
+          ) : (
             <div style={{
-              padding: '0.5rem 1rem',
-              background: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
+              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+              background: isLive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+              border: `1px solid ${isLive ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
               borderRadius: '0.5rem',
-              color: '#60a5fa',
+              color: isLive ? '#4ade80' : '#eab308',
               fontWeight: 'bold',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
+              fontSize: isMobile ? '0.8rem' : '0.9rem'
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
-                <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="15"></circle>
-              </svg>
-              Saving...
+              {match.status}
             </div>
           )}
-          {isLive && canUndo() && (
+          
+          {!isLive && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              style={{
+                padding: isMobile ? '0.4rem 0.875rem' : '0.5rem 1.5rem',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: '0.5rem',
+                color: '#3b82f6',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              Edit Match
+            </button>
+          )}
+          {isEditing && (
+            <button
+              onClick={handleDoneEditing}
+              style={{
+                padding: isMobile ? '0.4rem 0.875rem' : '0.5rem 1.5rem',
+                background: 'rgba(34, 197, 94, 0.2)',
+                border: '1px solid rgba(34, 197, 94, 0.4)',
+                borderRadius: '0.5rem',
+                color: '#4ade80',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Done Editing
+            </button>
+          )}
+          {(isLive || isEditing) && canUndo() && (
             <button
               onClick={handleUndo}
               style={{
-                padding: '0.5rem 1.5rem',
+                padding: isMobile ? '0.4rem 0.875rem' : '0.5rem 1.5rem',
                 background: 'rgba(239, 68, 68, 0.2)',
                 border: '1px solid rgba(239, 68, 68, 0.4)',
                 borderRadius: '0.5rem',
                 color: '#ff6b6b',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
                 transition: 'all 0.3s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.35rem'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
@@ -1237,7 +1607,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 7v6h6"></path>
                 <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
               </svg>
@@ -1248,18 +1618,18 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
             <button
               onClick={() => endMatch(match, scores)}
               style={{
-                padding: '0.5rem 1.5rem',
+                padding: isMobile ? '0.4rem 0.875rem' : '0.5rem 1.5rem',
                 background: 'rgba(234, 179, 8, 0.2)',
                 border: '1px solid rgba(234, 179, 8, 0.4)',
                 borderRadius: '0.5rem',
                 color: '#eab308',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
                 transition: 'all 0.3s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.35rem'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(234, 179, 8, 0.3)';
@@ -1270,7 +1640,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
@@ -1280,33 +1650,274 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
         </div>
       </div>
 
-      {/* Score Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr auto 2fr', gap: '3rem', alignItems: 'start' }}>
-        {/* Team A Column */}
-        <div>
-          {/* Team A Header */}
+      {/* Team Headers Row - Same height for both */}
+      <div style={{ 
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: isMobile ? '1rem' : '3rem',
+        marginBottom: isMobile ? '1rem' : '2rem'
+      }}>
+        {/* Team A Header */}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: isMobile ? '1rem' : '1.5rem',
+          background: 'rgba(255, 215, 0, 0.1)',
+          borderRadius: '0.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: isMobile ? '140px' : 'auto'
+        }}>
+          <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM A</div>
           <div style={{ 
-            textAlign: 'center', 
-            marginBottom: '2rem',
-            padding: '1.5rem',
-            background: 'rgba(255, 215, 0, 0.1)',
-            borderRadius: '0.75rem'
+            color: '#fff', 
+            fontSize: isMobile ? '0.7rem' : '1rem', 
+            fontWeight: 'bold', 
+            marginBottom: isMobile ? '0.5rem' : '1rem',
+            wordBreak: 'break-word',
+            lineHeight: '1.2',
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM A</div>
-            <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-              {getTeamFullName(match.teamA)}
-            </div>
-            <div style={{ 
-              color: '#FFD700', 
-              fontSize: '3rem', 
-              fontWeight: 'bold',
-              lineHeight: '1'
-            }}>
-              {calculateTotal(scores.teamA)}
-            </div>
-            <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>Total Points</div>
+            {getTeamFullName(match.teamA)}
           </div>
+          <div style={{ 
+            color: '#FFD700', 
+            fontSize: isMobile ? '2rem' : '3rem', 
+            fontWeight: 'bold',
+            lineHeight: '1'
+          }}>
+            {calculateTotal(scores.teamA)}
+          </div>
+          <div style={{ color: '#888', fontSize: isMobile ? '0.65rem' : '0.85rem', marginTop: '0.5rem' }}>Total Points</div>
+        </div>
 
+        {/* Team B Header */}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: isMobile ? '1rem' : '1.5rem',
+          background: 'rgba(255, 215, 0, 0.1)',
+          borderRadius: '0.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: isMobile ? '140px' : 'auto'
+        }}>
+          <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM B</div>
+          <div style={{ 
+            color: '#fff', 
+            fontSize: isMobile ? '0.7rem' : '1rem', 
+            fontWeight: 'bold', 
+            marginBottom: isMobile ? '0.5rem' : '1rem',
+            wordBreak: 'break-word',
+            lineHeight: '1.2',
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {getTeamFullName(match.teamB)}
+          </div>
+          <div style={{ 
+            color: '#FFD700', 
+            fontSize: isMobile ? '2rem' : '3rem', 
+            fontWeight: 'bold',
+            lineHeight: '1'
+          }}>
+            {calculateTotal(scores.teamB)}
+          </div>
+          <div style={{ color: '#888', fontSize: isMobile ? '0.65rem' : '0.85rem', marginTop: '0.5rem' }}>Total Points</div>
+        </div>
+      </div>
+
+      {/* Score Rows */}
+      {isMobile ? (
+        // Mobile: Single row per category with label in center
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {scoreCategories.map(({ label, field }) => (
+            <div key={field}>
+              {/* Label */}
+              <div style={{ 
+                textAlign: 'center', 
+                color: '#FFD700', 
+                fontSize: '0.8rem', 
+                fontWeight: 'bold',
+                marginBottom: '0.5rem'
+              }}>
+                {label}
+              </div>
+              {/* Score Row */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1rem'
+              }}>
+                {/* Team A */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(255, 215, 0, 0.1)',
+                  gap: '0.5rem'
+                }}>
+                  <span style={{ 
+                    color: '#FFD700', 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold',
+                    minWidth: '30px',
+                    textAlign: 'center'
+                  }}>
+                    {scores.teamA[field]}
+                  </span>
+                  {(isLive || isEditing) && (
+                    <button
+                      onClick={() => handleIncrement('teamA', field)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid rgba(34, 197, 94, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#4ade80',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      +1
+                    </button>
+                  )}
+                  {isEditing && (
+                    <button
+                      onClick={() => handleDecrement('teamA', field)}
+                      disabled={scores.teamA[field] <= 0}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        background: scores.teamA[field] <= 0 ? 'rgba(100, 100, 100, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        border: `1px solid ${scores.teamA[field] <= 0 ? 'rgba(100, 100, 100, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                        borderRadius: '0.5rem',
+                        color: scores.teamA[field] <= 0 ? '#666' : '#ff6b6b',
+                        cursor: scores.teamA[field] <= 0 ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        opacity: scores.teamA[field] <= 0 ? 0.5 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (scores.teamA[field] > 0) {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (scores.teamA[field] > 0) {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }
+                      }}
+                    >
+                      -1
+                    </button>
+                  )}
+                </div>
+
+                {/* Team B */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(255, 215, 0, 0.1)',
+                  gap: '0.5rem'
+                }}>
+                  {isEditing && (
+                    <button
+                      onClick={() => handleDecrement('teamB', field)}
+                      disabled={scores.teamB[field] <= 0}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        background: scores.teamB[field] <= 0 ? 'rgba(100, 100, 100, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        border: `1px solid ${scores.teamB[field] <= 0 ? 'rgba(100, 100, 100, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                        borderRadius: '0.5rem',
+                        color: scores.teamB[field] <= 0 ? '#666' : '#ff6b6b',
+                        cursor: scores.teamB[field] <= 0 ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        opacity: scores.teamB[field] <= 0 ? 0.5 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (scores.teamB[field] > 0) {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (scores.teamB[field] > 0) {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }
+                      }}
+                    >
+                      -1
+                    </button>
+                  )}
+                  {(isLive || isEditing) && (
+                    <button
+                      onClick={() => handleIncrement('teamB', field)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid rgba(34, 197, 94, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#4ade80',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      +1
+                    </button>
+                  )}
+                  <span style={{ 
+                    color: '#FFD700', 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold',
+                    minWidth: '30px',
+                    textAlign: 'center'
+                  }}>
+                    {scores.teamB[field]}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Desktop: Original 3-column layout
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr auto 2fr', gap: '3rem', alignItems: 'start' }}>
           {/* Team A Scores */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {scoreCategories.map(({ field }) => (
@@ -1359,59 +1970,25 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Center Labels Column */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '1rem'
-        }}>
-          {/* Empty space to match team header height */}
-          <div style={{ height: 'calc(8.5rem + 4rem)' }}></div>
-          
-          {/* Labels aligned with score rows */}
-          {scoreCategories.map(({ label }) => (
-            <div key={label} style={{
-              minHeight: '60px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFD700',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              whiteSpace: 'nowrap',
-              marginBottom: '10px'
-            }}>
-              {label}
-            </div>
-          ))}
-        </div>
-
-        {/* Team B Column */}
-        <div>
-          {/* Team B Header */}
-          <div style={{ 
-            textAlign: 'center', 
-            marginBottom: '2rem',
-            padding: '1.5rem',
-            background: 'rgba(255, 215, 0, 0.1)',
-            borderRadius: '0.75rem'
-          }}>
-            <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM B</div>
-            <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-              {getTeamFullName(match.teamB)}
-            </div>
-            <div style={{ 
-              color: '#FFD700', 
-              fontSize: '3rem', 
-              fontWeight: 'bold',
-              lineHeight: '1'
-            }}>
-              {calculateTotal(scores.teamB)}
-            </div>
-            <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>Total Points</div>
+          {/* Center Labels */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {scoreCategories.map(({ label }) => (
+              <div key={label} style={{
+                minHeight: '60px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFD700',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                marginBottom: '10px'
+              }}>
+                {label}
+              </div>
+            ))}
           </div>
 
           {/* Team B Scores */}
@@ -1467,7 +2044,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
             ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -1661,7 +2238,7 @@ const WinnerSelectDialog = ({ match, totalA, totalB, onSelectWinner, onCancel, g
 };
 
 // Table Tennis Score Card Component
-const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLive }) => {
+const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLive, isMobile = false, onPendingUpdateChange }) => {
   const maxSets = match.round === 'League Stage' ? 1 : 3;
   const winningScore = match.matchType === 'Singles' ? 11 : 15;
   
@@ -1671,9 +2248,15 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [undoHistory, setUndoHistory] = useState([]); // Track history for multiple undos
   const [isEditing, setIsEditing] = useState(false); // Track if editing completed match
+  const [editedStatus, setEditedStatus] = useState(match.status); // Track edited status
   const [lastMatchId, setLastMatchId] = useState(null); // Track match ID changes
   const [updateTimeout, setUpdateTimeout] = useState(null); // Debounce timeout
   const [pendingUpdate, setPendingUpdate] = useState(false); // Track if update is pending
+  const [isSavingStatus, setIsSavingStatus] = useState(false); // Track if saving status
+  const [matchStatus, setMatchStatus] = useState(match.status); // Track current match status for UI updates
+
+  // Update isLive based on matchStatus
+  const isMatchLive = matchStatus === 'Live';
 
   // Load undo history from localStorage on mount
   useEffect(() => {
@@ -1756,12 +2339,12 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
     return null;
   };
 
-  const handleScoreUpdate = (setIndex, team, increment = true) => {
+  const handleScoreUpdate = async (setIndex, team, increment = true) => {
     const newSets = [...sets];
     const currentSet = { ...newSets[setIndex] };
 
     // Store previous state in history (only for live matches)
-    if (isLive) {
+    if (isMatchLive) {
       setUndoHistory(prev => [...prev, {
         sets: [...sets],
         setsWonA: setsWonA,
@@ -1794,8 +2377,9 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
     let winner = null;
     let newSetsWonA = setsWonA;
     let newSetsWonB = setsWonB;
+    let matchCompleted = false;
     
-    if ((isLive || (isEditing && increment)) && !currentSet.winner) {
+    if ((isMatchLive || (isEditing && increment)) && !currentSet.winner) {
       winner = checkSetWinner(currentSet.teamAScore, currentSet.teamBScore);
       if (winner) {
         currentSet.winner = winner === 'A' ? match.teamA._id : match.teamB._id;
@@ -1808,12 +2392,19 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
         setSetsWonB(newSetsWonB);
 
         // Move to next set if available (only in live mode)
-        if (isLive && setIndex < maxSets - 1) {
+        if (isMatchLive && setIndex < maxSets - 1) {
           setCurrentSetIndex(setIndex + 1);
+        }
+        
+        // Check if match is won (need to win majority of sets)
+        const setsToWin = Math.ceil(maxSets / 2);
+        if (isMatchLive && (newSetsWonA >= setsToWin || newSetsWonB >= setsToWin)) {
+          matchCompleted = true;
         }
       }
     }
 
+    // Update the sets array
     newSets[setIndex] = currentSet;
     setSets(newSets);
 
@@ -1825,6 +2416,46 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
       setSetsWonB(newSetsWonB);
     }
 
+    // If match is completed, save immediately and update status
+    if (matchCompleted) {
+      try {
+        // Clear any pending timeout
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
+        
+        // Save the final score immediately
+        await updateScore(match._id, {
+          tableTennis: {
+            sets: newSets,
+            setsWonA: newSetsWonA,
+            setsWonB: newSetsWonB
+          }
+        });
+        
+        // Update match status to Completed
+        await axios.patch(
+          `${API_URL}/api/schedule/${match._id}/status`,
+          { status: 'Completed' },
+          { withCredentials: true }
+        );
+        
+        // Update the match object and UI state
+        match.status = 'Completed';
+        setMatchStatus('Completed');
+        
+        // Clear undo history
+        localStorage.removeItem(`undoHistory_${match._id}`);
+        
+        // Exit editing mode to show Edit button
+        setIsEditing(false);
+        
+        return;
+      } catch (error) {
+        console.error('Error completing match:', error);
+      }
+    }
+
     // Clear existing timeout
     if (updateTimeout) {
       clearTimeout(updateTimeout);
@@ -1832,6 +2463,7 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
 
     // Set pending update indicator
     setPendingUpdate(true);
+    if (onPendingUpdateChange) onPendingUpdateChange(true);
 
     // Debounce the server update (800ms delay)
     const timeout = setTimeout(() => {
@@ -1843,9 +2475,39 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
         }
       });
       setPendingUpdate(false);
+      if (onPendingUpdateChange) onPendingUpdateChange(false);
     }, 800);
 
     setUpdateTimeout(timeout);
+  };
+
+  const handleDoneEditing = async () => {
+    // Prevent multiple clicks
+    if (isSavingStatus) return;
+    
+    // Save status if it was changed
+    if (editedStatus !== match.status) {
+      setIsSavingStatus(true);
+      try {
+        await axios.patch(
+          `${API_URL}/api/schedule/${match._id}/status`,
+          { status: editedStatus },
+          { withCredentials: true }
+        );
+        
+        // Reload the page to reflect the new status
+        window.location.reload();
+        return;
+      } catch (error) {
+        console.error('Error changing status:', error);
+        alert('Failed to change status: ' + (error.response?.data?.message || error.message));
+        setIsSavingStatus(false);
+        return;
+      }
+    }
+    
+    // Just exit edit mode if status wasn't changed
+    setIsEditing(false);
   };
 
   const handleUndo = () => {
@@ -1870,6 +2532,7 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
 
     // Set pending update indicator
     setPendingUpdate(true);
+    if (onPendingUpdateChange) onPendingUpdateChange(true);
 
     // Debounce the server update (800ms delay)
     const timeout = setTimeout(() => {
@@ -1881,6 +2544,7 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
         }
       });
       setPendingUpdate(false);
+      if (onPendingUpdateChange) onPendingUpdateChange(false);
     }, 800);
 
     setUpdateTimeout(timeout);
@@ -1906,71 +2570,80 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
       backdropFilter: 'blur(20px)',
       borderRadius: '1rem',
       border: '1px solid rgba(255, 215, 0, 0.2)',
-      padding: '2rem',
+      padding: isMobile ? '1rem' : '2rem',
       position: 'relative'
     }}>
       {/* Match Header */}
       <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '2rem',
-        paddingBottom: '1rem',
+        marginBottom: isMobile ? '1.5rem' : '2rem',
+        paddingBottom: isMobile ? '0.75rem' : '1rem',
         borderBottom: '1px solid rgba(255, 215, 0, 0.2)'
       }}>
+        {/* Title and Info */}
         <div>
-          <h3 style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          <h3 style={{ color: '#FFD700', fontSize: isMobile ? '1.1rem' : '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
             {match.game.name} - Match {String(match.matchNumber).padStart(2, '0')}
           </h3>
-          <p style={{ color: '#888', fontSize: '0.9rem' }}>
+          <p style={{ color: '#888', fontSize: isMobile ? '0.8rem' : '0.9rem', marginBottom: '1rem' }}>
             {match.round} • {match.matchType} • Best of {maxSets}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{
-            padding: '0.5rem 1rem',
-            background: match.status === 'Live' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
-            border: `1px solid ${match.status === 'Live' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
-            borderRadius: '0.5rem',
-            color: match.status === 'Live' ? '#4ade80' : '#eab308',
-            fontWeight: 'bold'
-          }}>
-            {match.status}
-          </div>
-          {pendingUpdate && (
+
+        {/* Status and Undo Row */}
+        <div style={{ display: 'flex', gap: isMobile ? '0.5rem' : '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          {/* Status Display/Dropdown */}
+          {isEditing ? (
+            <select
+              value={editedStatus}
+              onChange={(e) => setEditedStatus(e.target.value)}
+              style={{
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                background: 'rgba(255, 215, 0, 0.15)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                fontWeight: 'bold',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="Scheduled" style={{ background: '#1a1a1a', color: '#FFD700' }}>Scheduled</option>
+              <option value="Live" style={{ background: '#1a1a1a', color: '#FFD700' }}>Live</option>
+              <option value="Completed" style={{ background: '#1a1a1a', color: '#FFD700' }}>Completed</option>
+              <option value="Cancelled" style={{ background: '#1a1a1a', color: '#FFD700' }}>Cancelled</option>
+            </select>
+          ) : (
             <div style={{
-              padding: '0.5rem 1rem',
-              background: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
+              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+              background: matchStatus === 'Live' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+              border: `1px solid ${matchStatus === 'Live' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
               borderRadius: '0.5rem',
-              color: '#60a5fa',
+              color: matchStatus === 'Live' ? '#4ade80' : '#eab308',
               fontWeight: 'bold',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
+              fontSize: isMobile ? '0.8rem' : '1rem'
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
-                <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="15"></circle>
-              </svg>
-              Saving...
+              {matchStatus}
             </div>
           )}
-          {isLive && canUndo() && (
+
+          {/* Undo Button */}
+          {(isMatchLive || isEditing) && undoHistory.length > 0 && (
             <button
               onClick={handleUndo}
               style={{
-                padding: '0.5rem 1.5rem',
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
                 background: 'rgba(239, 68, 68, 0.2)',
                 border: '1px solid rgba(239, 68, 68, 0.4)',
                 borderRadius: '0.5rem',
                 color: '#ff6b6b',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
                 transition: 'all 0.3s',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.5rem'
               }}
               onMouseEnter={(e) => {
@@ -1982,87 +2655,106 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 7v6h6"></path>
                 <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
               </svg>
               Undo ({undoHistory.length})
             </button>
           )}
-          {isLive && (
+        </div>
+
+        {/* Action Buttons Row */}
+        <div style={{ 
+          display: 'flex', 
+          gap: isMobile ? '0.5rem' : '1rem', 
+          flexWrap: 'wrap',
+          justifyContent: 'flex-start'
+        }}>
+          {!isMatchLive && !isEditing && (
             <button
-              onClick={() => endMatch(match, setsWonA, setsWonB)}
+              onClick={() => setIsEditing(true)}
               style={{
-                padding: '0.5rem 1.5rem',
-                background: 'rgba(234, 179, 8, 0.2)',
-                border: '1px solid rgba(234, 179, 8, 0.4)',
+                flex: isMobile ? '1 1 calc(50% - 0.25rem)' : '0 0 auto',
+                minWidth: isMobile ? '0' : '140px',
+                padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.5rem',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
                 borderRadius: '0.5rem',
-                color: '#eab308',
+                color: '#60a5fa',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
+                fontSize: isMobile ? '0.85rem' : '0.9rem',
                 transition: 'all 0.3s',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.5rem'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(234, 179, 8, 0.3)';
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
                 e.currentTarget.style.transform = 'scale(1.05)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(234, 179, 8, 0.2)';
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
+              <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
-              End Match
+              Edit Match
             </button>
           )}
-          {!isLive && (
+          {isEditing && (
             <button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={handleDoneEditing}
+              disabled={isSavingStatus}
               style={{
-                padding: '0.5rem 1.5rem',
-                background: isEditing ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                border: `1px solid ${isEditing ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)'}`,
+                flex: isMobile ? '1 1 calc(50% - 0.25rem)' : '0 0 auto',
+                minWidth: isMobile ? '0' : '140px',
+                padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.5rem',
+                background: isSavingStatus ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.2)',
+                border: '1px solid rgba(34, 197, 94, 0.4)',
                 borderRadius: '0.5rem',
-                color: isEditing ? '#ff6b6b' : '#60a5fa',
-                cursor: 'pointer',
+                color: isSavingStatus ? '#4ade80' : '#4ade80',
+                cursor: isSavingStatus ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
+                fontSize: isMobile ? '0.85rem' : '0.9rem',
                 transition: 'all 0.3s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                justifyContent: 'center',
+                gap: '0.5rem',
+                opacity: isSavingStatus ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = isEditing ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
-                e.currentTarget.style.transform = 'scale(1.05)';
+                if (!isSavingStatus) {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = isEditing ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)';
-                e.currentTarget.style.transform = 'scale(1)';
+                if (!isSavingStatus) {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
               }}
             >
-              {isEditing ? (
+              {isSavingStatus ? (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                    <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="15"></circle>
                   </svg>
-                  Cancel Edit
+                  Saving...
                 </>
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  <svg width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
-                  Edit Scores
+                  Done Editing
                 </>
               )}
             </button>
@@ -2076,34 +2768,44 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
         gridTemplateColumns: '1fr auto 1fr', 
         gap: '2rem', 
         marginBottom: '2rem',
-        alignItems: 'center'
+        alignItems: 'stretch'
       }}>
         <div style={{ 
           textAlign: 'center',
           padding: '1.5rem',
           background: 'rgba(255, 215, 0, 0.1)',
-          borderRadius: '0.75rem'
+          borderRadius: '0.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
-          <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM A</div>
-          <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-            {getTeamFullName(match.teamA)}
+          <div>
+            <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM A</div>
+            <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', minHeight: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {getTeamFullName(match.teamA)}
+            </div>
           </div>
-          <div style={{ 
-            color: '#FFD700', 
-            fontSize: '3rem', 
-            fontWeight: 'bold',
-            lineHeight: '1'
-          }}>
-            {setsWonA}
+          <div>
+            <div style={{ 
+              color: '#FFD700', 
+              fontSize: '3rem', 
+              fontWeight: 'bold',
+              lineHeight: '1'
+            }}>
+              {setsWonA}
+            </div>
+            <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>Sets Won</div>
           </div>
-          <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>Sets Won</div>
         </div>
 
         <div style={{ 
           color: '#FFD700', 
           fontSize: '2rem', 
           fontWeight: 'bold',
-          textAlign: 'center'
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
           VS
         </div>
@@ -2112,21 +2814,28 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
           textAlign: 'center',
           padding: '1.5rem',
           background: 'rgba(255, 215, 0, 0.1)',
-          borderRadius: '0.75rem'
+          borderRadius: '0.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
-          <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM B</div>
-          <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-            {getTeamFullName(match.teamB)}
+          <div>
+            <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: '600' }}>TEAM B</div>
+            <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', minHeight: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {getTeamFullName(match.teamB)}
+            </div>
           </div>
-          <div style={{ 
-            color: '#FFD700', 
-            fontSize: '3rem', 
-            fontWeight: 'bold',
-            lineHeight: '1'
-          }}>
-            {setsWonB}
+          <div>
+            <div style={{ 
+              color: '#FFD700', 
+              fontSize: '3rem', 
+              fontWeight: 'bold',
+              lineHeight: '1'
+            }}>
+              {setsWonB}
+            </div>
+            <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>Sets Won</div>
           </div>
-          <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>Sets Won</div>
         </div>
       </div>
 
@@ -2190,40 +2899,45 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
               </div>
 
               <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr auto 1fr', 
-                gap: '2rem',
-                alignItems: 'center'
+                display: 'flex',
+                gap: '0.5rem',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexWrap: 'nowrap',
+                overflow: 'hidden'
               }}>
                 {/* Team A Score */}
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'flex-end',
-                  gap: '1rem'
+                  gap: '0.35rem',
+                  flex: '1',
+                  minWidth: 0
                 }}>
                   <div style={{ 
                     color: '#FFD700', 
-                    fontSize: '2rem', 
+                    fontSize: isMobile ? '1.25rem' : '2rem', 
                     fontWeight: 'bold',
-                    minWidth: '60px',
+                    minWidth: isMobile ? '30px' : '60px',
                     textAlign: 'center'
                   }}>
                     {set.teamAScore}
                   </div>
-                  {isLive && isActive && !set.winner && (
+                  {isMatchLive && isActive && !set.winner && (
                     <button
                       onClick={() => handleScoreUpdate(index, 'A')}
                       style={{
-                        padding: '0.5rem 1.25rem',
+                        padding: isMobile ? '0.35rem 0.65rem' : '0.5rem 1.25rem',
                         background: 'rgba(34, 197, 94, 0.2)',
                         border: '1px solid rgba(34, 197, 94, 0.4)',
                         borderRadius: '0.5rem',
                         color: '#4ade80',
                         cursor: 'pointer',
                         fontWeight: 'bold',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
+                        fontSize: isMobile ? '0.8rem' : '1rem',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
@@ -2238,19 +2952,20 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                     </button>
                   )}
                   {isEditing && (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
                       <button
                         onClick={() => handleScoreUpdate(index, 'A', false)}
                         style={{
-                          padding: '0.5rem 1rem',
+                          padding: isMobile ? '0.35rem 0.5rem' : '0.5rem 0.75rem',
                           background: 'rgba(239, 68, 68, 0.2)',
                           border: '1px solid rgba(239, 68, 68, 0.4)',
                           borderRadius: '0.5rem',
                           color: '#ff6b6b',
                           cursor: 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '1rem',
-                          transition: 'all 0.2s'
+                          fontSize: isMobile ? '0.8rem' : '1rem',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
@@ -2266,15 +2981,16 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                       <button
                         onClick={() => handleScoreUpdate(index, 'A', true)}
                         style={{
-                          padding: '0.5rem 1rem',
+                          padding: isMobile ? '0.35rem 0.5rem' : '0.5rem 0.75rem',
                           background: 'rgba(34, 197, 94, 0.2)',
                           border: '1px solid rgba(34, 197, 94, 0.4)',
                           borderRadius: '0.5rem',
                           color: '#4ade80',
                           cursor: 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '1rem',
-                          transition: 'all 0.2s'
+                          fontSize: isMobile ? '0.8rem' : '1rem',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
@@ -2294,8 +3010,9 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                 {/* Separator */}
                 <div style={{ 
                   color: '#888', 
-                  fontSize: '1.5rem', 
-                  fontWeight: 'bold' 
+                  fontSize: isMobile ? '1rem' : '1.5rem', 
+                  fontWeight: 'bold',
+                  flexShrink: 0
                 }}>
                   -
                 </div>
@@ -2305,21 +3022,24 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'flex-start',
-                  gap: '1rem'
+                  gap: '0.35rem',
+                  flex: '1',
+                  minWidth: 0
                 }}>
-                  {isLive && isActive && !set.winner && (
+                  {isMatchLive && isActive && !set.winner && (
                     <button
                       onClick={() => handleScoreUpdate(index, 'B')}
                       style={{
-                        padding: '0.5rem 1.25rem',
+                        padding: isMobile ? '0.35rem 0.65rem' : '0.5rem 1.25rem',
                         background: 'rgba(34, 197, 94, 0.2)',
                         border: '1px solid rgba(34, 197, 94, 0.4)',
                         borderRadius: '0.5rem',
                         color: '#4ade80',
                         cursor: 'pointer',
                         fontWeight: 'bold',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
+                        fontSize: isMobile ? '0.8rem' : '1rem',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
@@ -2334,19 +3054,20 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                     </button>
                   )}
                   {isEditing && (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
                       <button
                         onClick={() => handleScoreUpdate(index, 'B', false)}
                         style={{
-                          padding: '0.5rem 1rem',
+                          padding: isMobile ? '0.35rem 0.5rem' : '0.5rem 0.75rem',
                           background: 'rgba(239, 68, 68, 0.2)',
                           border: '1px solid rgba(239, 68, 68, 0.4)',
                           borderRadius: '0.5rem',
                           color: '#ff6b6b',
                           cursor: 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '1rem',
-                          transition: 'all 0.2s'
+                          fontSize: isMobile ? '0.8rem' : '1rem',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
@@ -2362,15 +3083,16 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                       <button
                         onClick={() => handleScoreUpdate(index, 'B', true)}
                         style={{
-                          padding: '0.5rem 1rem',
+                          padding: isMobile ? '0.35rem 0.5rem' : '0.5rem 0.75rem',
                           background: 'rgba(34, 197, 94, 0.2)',
                           border: '1px solid rgba(34, 197, 94, 0.4)',
                           borderRadius: '0.5rem',
                           color: '#4ade80',
                           cursor: 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '1rem',
-                          transition: 'all 0.2s'
+                          fontSize: isMobile ? '0.8rem' : '1rem',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
@@ -2387,9 +3109,9 @@ const TableTennisScoreCard = ({ match, updateScore, endMatch, getTeamFullName, i
                   )}
                   <div style={{ 
                     color: '#FFD700', 
-                    fontSize: '2rem', 
+                    fontSize: isMobile ? '1.25rem' : '2rem', 
                     fontWeight: 'bold',
-                    minWidth: '60px',
+                    minWidth: isMobile ? '30px' : '60px',
                     textAlign: 'center'
                   }}>
                     {set.teamBScore}

@@ -553,10 +553,12 @@ const Teams = () => {
                       background: 'rgba(255, 255, 255, 0.05)',
                       border: '1px solid rgba(255, 215, 0, 0.2)',
                       borderRadius: '0.75rem',
-                      padding: '1rem 1.5rem',
+                      padding: '1rem',
                       display: 'flex',
-                      alignItems: 'center',
+                      flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+                      alignItems: window.innerWidth < 768 ? 'stretch' : 'center',
                       justifyContent: 'space-between',
+                      gap: '1rem',
                       transition: 'all 0.2s',
                     }}
                     onMouseEnter={(e) => {
@@ -568,10 +570,11 @@ const Teams = () => {
                       e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
                       <div style={{
                         width: '40px',
                         height: '40px',
+                        flexShrink: 0,
                         borderRadius: '50%',
                         background: 'rgba(255, 215, 0, 0.2)',
                         border: '2px solid rgba(255, 215, 0, 0.4)',
@@ -584,9 +587,16 @@ const Teams = () => {
                       }}>
                         {index + 1}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ color: '#fff', fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
-                          {getGameName(team.gameId)} - {getHallName(team.hallId)} (Team {team.teamName})
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ 
+                          color: '#fff', 
+                          fontWeight: '600', 
+                          fontSize: window.innerWidth < 768 ? '0.9rem' : '1rem', 
+                          marginBottom: '0.25rem',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.4'
+                        }}>
+                          {getGameName(team.gameId)} - {team.secondTeamName ? `${team.secondTeamName} (${getHallName(team.hallId)} - Team ${team.teamName})` : `${getHallName(team.hallId)} (Team ${team.teamName})`}
                         </div>
                         <div style={{ color: '#888', fontSize: '0.85rem' }}>
                           {team.players.length} players
@@ -605,6 +615,8 @@ const Teams = () => {
                         fontSize: '0.85rem',
                         fontWeight: '500',
                         transition: 'all 0.2s',
+                        flexShrink: 0,
+                        width: window.innerWidth < 768 ? '100%' : 'auto',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
@@ -663,10 +675,10 @@ const Teams = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div>
                   <h2 style={{ color: '#FFD700', fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                    Team {selectedTeam.teamName}
+                    {selectedTeam.secondTeamName ? selectedTeam.secondTeamName : `${getHallName(selectedTeam.hallId)} (Team ${selectedTeam.teamName})`}
                   </h2>
                   <p style={{ color: '#888', fontSize: '0.9rem' }}>
-                    {getHallName(selectedTeam.hallId)} • {getGameName(selectedTeam.gameId)}
+                    {selectedTeam.secondTeamName ? `${getHallName(selectedTeam.hallId)} - Team ${selectedTeam.teamName} • ${getGameName(selectedTeam.gameId)}` : getGameName(selectedTeam.gameId)}
                   </p>
                 </div>
                 <button

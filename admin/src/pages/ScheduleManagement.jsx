@@ -5,6 +5,7 @@ import { DatePicker, TimePicker, ConfigProvider } from 'antd';
 import dayjs from 'dayjs';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
+import Loader from '../components/Loader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -104,14 +105,23 @@ const ScheduleManagement = () => {
       };
 
       if (editingMatch) {
-        await axios.put(`${API_URL}/api/schedule/${editingMatch._id}`, submitData, { withCredentials: true });
+        const response = await axios.put(`${API_URL}/api/schedule/${editingMatch._id}`, submitData, { withCredentials: true });
         setToast({ message: 'Match updated successfully!', type: 'success' });
+        
+        // Update only the edited match in state
+        setMatches(prevMatches => 
+          prevMatches.map(match => 
+            match._id === editingMatch._id ? response.data : match
+          )
+        );
       } else {
-        await axios.post(`${API_URL}/api/schedule`, submitData, { withCredentials: true });
+        const response = await axios.post(`${API_URL}/api/schedule`, submitData, { withCredentials: true });
         setToast({ message: 'Match created successfully!', type: 'success' });
+        
+        // Add new match to state
+        setMatches(prevMatches => [...prevMatches, response.data]);
       }
 
-      fetchData();
       resetForm();
     } catch (error) {
       setToast({ message: error.response?.data?.message || 'Failed to save match', type: 'error' });
@@ -129,7 +139,9 @@ const ScheduleManagement = () => {
     try {
       await axios.delete(`${API_URL}/api/schedule/${matchToDelete}`, { withCredentials: true });
       setToast({ message: 'Match deleted successfully!', type: 'success' });
-      fetchData();
+      
+      // Remove deleted match from state
+      setMatches(prevMatches => prevMatches.filter(match => match._id !== matchToDelete));
     } catch (error) {
       setToast({ message: 'Failed to delete match', type: 'error' });
     } finally {
@@ -374,9 +386,7 @@ const ScheduleManagement = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <div style={{ color: '#FFD700', fontSize: '1.25rem' }}>Loading...</div>
-        </div>
+        <Loader />
       </AdminLayout>
     );
   }
@@ -499,7 +509,7 @@ const ScheduleManagement = () => {
             gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
             gap: '1.5rem' 
           }}>
-            {matches.map((match) => (
+            {matches.map((match, index) => (
               <div
                 key={match._id}
                 style={{
@@ -767,9 +777,11 @@ const ScheduleManagement = () => {
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             position: 'absolute',
-                            top: '100%',
+                            bottom: index >= matches.length - 2 ? '100%' : 'auto',
+                            top: index >= matches.length - 2 ? 'auto' : '100%',
                             right: 0,
-                            marginTop: '0.5rem',
+                            marginTop: index >= matches.length - 2 ? '0' : '0.5rem',
+                            marginBottom: index >= matches.length - 2 ? '0.5rem' : '0',
                             background: '#1a1a1a',
                             border: '1px solid rgba(255, 215, 0, 0.3)',
                             borderRadius: '0.5rem',

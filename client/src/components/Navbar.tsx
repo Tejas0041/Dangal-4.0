@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { name: "Home", href: "/#" },
-  { name: "About", href: "/#about" },
+  { name: "About Us", href: "/#about" },
   { name: "Events", href: "/#events" },
   { name: "Matches", href: "/matches" },
   { name: "Scores", href: "/scores" },
@@ -24,6 +24,9 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Check if we're on the home page
+  const isHomePage = location.pathname === '/';
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -31,6 +34,11 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Determine if navbar should have scrolled appearance
+  // On home page: only when scrolled
+  // On other pages: always
+  const showScrolledStyle = isHomePage ? isScrolled : true;
 
   const handleNavClick = (href: string) => {
     setMobileMenuOpen(false);
@@ -61,7 +69,7 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-[10000] transition-all duration-500 ${
-          isScrolled 
+          showScrolledStyle 
             ? "bg-black/60 backdrop-blur-xl border-b border-white/5 py-3" 
             : "bg-transparent py-6"
         }`}
@@ -255,7 +263,7 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
       </div>
 
       {/* Glowing Yellow Line with Glare Animation - Only when scrolled */}
-      {isScrolled && (
+      {showScrolledStyle && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent overflow-hidden">
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-75"
@@ -306,9 +314,29 @@ export function Navbar({ onProfileClick }: { onProfileClick?: () => void }) {
                     key={item.name}
                     href={item.href}
                     onClick={(e) => {
-                      if (item.href.startsWith("/#") && location.pathname === "/") {
+                      if (item.href.startsWith("/#")) {
                         e.preventDefault();
-                        handleNavClick(item.href);
+                        setMobileMenuOpen(false);
+                        
+                        if (location.pathname === "/") {
+                          // Already on home page, just scroll
+                          const id = item.href.substring(2);
+                          const element = id ? document.getElementById(id) : document.body;
+                          if (element) {
+                            element.scrollIntoView({ behavior: "smooth" });
+                          }
+                        } else {
+                          // Navigate to home page first, then scroll
+                          const id = item.href.substring(2);
+                          navigate('/');
+                          // Wait for navigation to complete before scrolling
+                          setTimeout(() => {
+                            const element = id ? document.getElementById(id) : document.body;
+                            if (element) {
+                              element.scrollIntoView({ behavior: "smooth" });
+                            }
+                          }, 100);
+                        }
                       } else {
                         setMobileMenuOpen(false);
                       }

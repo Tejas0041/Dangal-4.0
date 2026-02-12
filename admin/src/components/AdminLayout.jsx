@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AdminLayout = ({ children }) => {
   const { admin, logout, changePassword } = useAuth();
@@ -8,14 +8,22 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved === 'true';
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+  }, [sidebarCollapsed]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -103,10 +111,8 @@ const AdminLayout = ({ children }) => {
       label: 'User Management',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
         </svg>
       )
     },
@@ -137,7 +143,9 @@ const AdminLayout = ({ children }) => {
       label: 'Score Management',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
         </svg>
       )
     },
@@ -149,7 +157,8 @@ const AdminLayout = ({ children }) => {
       minHeight: '100vh', 
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
       position: 'relative',
-      overflow: 'hidden',
+      overflowY: 'auto',
+      overflowX: 'hidden',
     }}>
       {/* Animated Background Blobs */}
       <div style={{
@@ -274,44 +283,46 @@ const AdminLayout = ({ children }) => {
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <button
-                key={item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
-                style={{
-                  width: '100%',
-                  padding: sidebarCollapsed ? '1rem' : '1rem 1.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  background: isActive ? 'rgba(255, 215, 0, 0.15)' : 'transparent',
-                  border: 'none',
-                  borderLeft: isActive ? '3px solid #FFD700' : '3px solid transparent',
-                  color: isActive ? '#FFD700' : '#888',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  fontSize: '0.95rem',
-                  fontWeight: isActive ? '600' : '400',
-                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
-                    e.currentTarget.style.color = '#FFD700';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#888';
-                  }
-                }}
-              >
-                <span style={{ fontSize: '1.25rem' }}>{item.icon}</span>
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </button>
+              <div key={item.path} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => {
+                    navigate(item.path);
+                    setMobileMenuOpen(false);
+                  }}
+                  title={sidebarCollapsed ? item.label : ''}
+                  style={{
+                    width: '100%',
+                    padding: sidebarCollapsed ? '1rem' : '1rem 1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    background: isActive ? 'rgba(255, 215, 0, 0.15)' : 'transparent',
+                    border: 'none',
+                    borderLeft: isActive ? '3px solid #FFD700' : '3px solid transparent',
+                    color: isActive ? '#FFD700' : '#888',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    fontSize: '0.95rem',
+                    fontWeight: isActive ? '600' : '400',
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
+                      e.currentTarget.style.color = '#FFD700';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#888';
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '1.25rem' }}>{item.icon}</span>
+                  {!sidebarCollapsed && <span>{item.label}</span>}
+                </button>
+              </div>
             );
           })}
         </nav>
@@ -321,106 +332,6 @@ const AdminLayout = ({ children }) => {
           padding: '1.5rem',
           borderTop: '1px solid rgba(255, 215, 0, 0.1)',
         }}>
-          {!sidebarCollapsed && (
-            <div style={{
-              background: 'rgba(255, 215, 0, 0.1)',
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              marginBottom: '1rem',
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                marginBottom: '0.75rem',
-              }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  color: '#000',
-                  fontSize: '1.25rem',
-                }}>
-                  {admin?.username?.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ 
-                    fontWeight: '600', 
-                    color: '#fff',
-                    fontSize: '0.95rem',
-                  }}>
-                    {admin?.username}
-                  </div>
-                  <div style={{ 
-                    fontSize: '0.75rem', 
-                    color: '#FFD700',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}>
-                    {admin?.role}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  background: 'rgba(255, 215, 0, 0.2)',
-                  border: '1px solid rgba(255, 215, 0, 0.4)',
-                  borderRadius: '0.5rem',
-                  color: '#FFD700',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  marginBottom: '0.5rem',
-                  transition: 'all 0.3s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Change Password
-              </button>
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  background: 'rgba(239, 68, 68, 0.2)',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  borderRadius: '0.5rem',
-                  color: '#ef4444',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  transition: 'all 0.3s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                Logout
-              </button>
-            </div>
-          )}
-          
           {/* Collapse Button - Desktop Only */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -441,8 +352,8 @@ const AdminLayout = ({ children }) => {
             }}
             className="collapse-btn"
           >
-            {sidebarCollapsed ? '→' : '←'}
-            {!sidebarCollapsed && ' Collapse'}
+            {sidebarCollapsed ? '⟩⟩' : '⟨ ⟨ ⟨ ⟨'}
+            {!sidebarCollapsed && ''}
           </button>
         </div>
       </aside>
@@ -450,6 +361,7 @@ const AdminLayout = ({ children }) => {
       {/* Main Content */}
       <main style={{
         flex: 1,
+        minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -466,6 +378,9 @@ const AdminLayout = ({ children }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          position: 'sticky',
+          top: 0,
+          zIndex: 9999,
         }}>
           {/* Hamburger Menu Button - Mobile Only */}
           <button
@@ -510,13 +425,196 @@ const AdminLayout = ({ children }) => {
               Welcome back, Admin
             </p>
           </div>
+
+          {/* Admin Dropdown Button */}
+          <div style={{ position: 'relative', zIndex: 9999 }}>
+            <button
+              onClick={() => setShowAdminDropdown(!showAdminDropdown)}
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: 'rgba(255, 215, 0, 0.1)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '0.5rem',
+                color: '#FFD700',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)';
+              }}
+            >
+              Admin
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            {showAdminDropdown && (
+              <>
+                <div
+                  onClick={() => setShowAdminDropdown(false)}
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 9998,
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 0.5rem)',
+                    right: 0,
+                    background: 'rgba(26, 26, 26, 0.98)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 215, 0, 0.3)',
+                    borderRadius: '0.75rem',
+                    minWidth: '280px',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+                    zIndex: 9999,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Admin Info */}
+                  <div style={{
+                    padding: '1.25rem',
+                    borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
+                    background: 'rgba(255, 215, 0, 0.05)',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                    }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        color: '#000',
+                        fontSize: '1.5rem',
+                      }}>
+                        {admin?.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ 
+                          fontWeight: '600', 
+                          color: '#fff',
+                          fontSize: '1rem',
+                          marginBottom: '0.25rem',
+                        }}>
+                          {admin?.username}
+                        </div>
+                        <div style={{ 
+                          fontSize: '0.75rem', 
+                          color: '#FFD700',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}>
+                          {admin?.role}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dropdown Actions */}
+                  <div style={{ padding: '0.5rem' }}>
+                    <button
+                      onClick={() => {
+                        setShowAdminDropdown(false);
+                        setShowPasswordModal(true);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        color: '#FFD700',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                      Change Password
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowAdminDropdown(false);
+                        setShowLogoutConfirm(true);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </header>
 
         {/* Content Area */}
         <div style={{
           flex: 1,
+          minWidth: 0,
           padding: '1.5rem',
           overflowY: 'auto',
+          overflowX: 'visible',
         }}
         className="content-area"
         >
@@ -931,6 +1029,14 @@ const AdminLayout = ({ children }) => {
           main {
             margin-left: 0 !important;
           }
+
+          header {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999 !important;
+          }
           
           .hamburger-btn {
             display: flex !important;
@@ -941,7 +1047,7 @@ const AdminLayout = ({ children }) => {
           }
           
           .content-area {
-            padding: 1rem !important;
+            padding: 6rem 1rem 1rem 1rem !important;
           }
           
           .page-title {
@@ -964,7 +1070,7 @@ const AdminLayout = ({ children }) => {
         /* Mobile Specific */
         @media (max-width: 640px) {
           .content-area {
-            padding: 0.75rem !important;
+            padding: 5.5rem 0.75rem 0.75rem 0.75rem !important;
           }
           
           header {

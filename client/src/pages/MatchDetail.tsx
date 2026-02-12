@@ -8,6 +8,7 @@ import api from "@/lib/api";
 import { socket } from "@/lib/socket";
 import confetti from "canvas-confetti";
 import Confetti from "react-confetti";
+import { useLiveScores } from "@/hooks/useLiveScores";
 
 // Animated Gradient Mesh Background
 function AnimatedMeshBackground() {
@@ -241,6 +242,9 @@ export default function MatchDetail() {
   const [showFireworks, setShowFireworks] = useState(false);
   const animationInProgress = useRef(false);
 
+  // Use live scores hook for real-time updates
+  const liveScores = useLiveScores();
+
   const fetchMatch = async () => {
     try {
       setLoading(true);
@@ -345,8 +349,11 @@ export default function MatchDetail() {
 
   const handleScoreUpdate = useCallback((data: { matchId: string; increment: number; team: 'A' | 'B'; type?: string; scoreTypes?: Array<{ type: string; value: number }> }) => {
     console.log('Score update received:', data);
+    console.log('Current matchId:', matchId);
+    console.log('Animation in progress:', animationInProgress.current);
     
     if (data.matchId === matchId && !animationInProgress.current) {
+      console.log('Processing score update animation...');
       animationInProgress.current = true;
       
       // Fetch the latest match data to get team info
@@ -363,6 +370,13 @@ export default function MatchDetail() {
         }
         
         console.log('Setting score animation for:', teamName, '+' + data.increment);
+        console.log('Animation state:', {
+          team: data.team,
+          increment: data.increment,
+          teamName: teamName,
+          type: 'pointScored',
+          scoreTypes: data.scoreTypes
+        });
         
         setScoreAnimation({
           team: data.team,
@@ -513,6 +527,10 @@ export default function MatchDetail() {
   useEffect(() => {
     fetchMatch();
 
+    // Check socket connection
+    console.log('Socket connected:', socket.connected);
+    console.log('Setting up socket listeners for matchId:', matchId);
+
     // Socket listener for real-time updates
     socket.on('matchUpdated', handleMatchUpdate);
     socket.on('scoreUpdate', handleScoreUpdate);
@@ -520,12 +538,25 @@ export default function MatchDetail() {
     socket.on('matchWon', handleMatchWon);
 
     return () => {
+      console.log('Cleaning up socket listeners for matchId:', matchId);
       socket.off('matchUpdated', handleMatchUpdate);
       socket.off('scoreUpdate', handleScoreUpdate);
       socket.off('setWon', handleSetWon);
       socket.off('matchWon', handleMatchWon);
     };
   }, [matchId, handleMatchUpdate, handleScoreUpdate, handleSetWon, handleMatchWon]);
+
+  // Update match when live scores change
+  useEffect(() => {
+    if (matchId && liveScores[matchId]) {
+      setMatch(liveScores[matchId]);
+    }
+  }, [matchId, liveScores]);
+
+  // Debug: Log when scoreAnimation changes
+  useEffect(() => {
+    console.log('scoreAnimation state changed:', scoreAnimation);
+  }, [scoreAnimation]);
 
   const getTeamDisplayName = (team: Match['teamA'] | Match['teamB']) => {
     if (team.secondTeamName) {
@@ -665,10 +696,10 @@ export default function MatchDetail() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="max-w-6xl mx-auto mb-12"
+          className="max-w-4xl mx-auto mb-12"
         >
           {/* Desktop View - Side by Side */}
-          <div className="hidden md:grid md:grid-cols-2 gap-8">
+          <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] gap-8 items-center">
             {/* Team A */}
             <div className="glass-card hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 rounded-xl relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -682,6 +713,11 @@ export default function MatchDetail() {
                 </div>
                 <p className="text-gray-400">{getTeamSubtitle(match.teamA)}</p>
               </div>
+            </div>
+
+            {/* VS Icon */}
+            <div className="flex items-center justify-center">
+              <img src="/vs.webp" alt="VS" className="w-16 h-16 opacity-60 drop-shadow-[0_0_12px_rgba(255,255,255,0.5)]" />
             </div>
 
             {/* Team B */}
@@ -718,7 +754,9 @@ export default function MatchDetail() {
             </div>
 
             {/* VS */}
-            <div className="text-center text-gray-600 font-bold text-2xl">VS</div>
+            <div className="text-center text-gray-600 font-bold text-2xl">
+              <img src="/vs.webp" alt="VS" className="w-16 h-16 mx-auto opacity-60 drop-shadow-[0_0_12px_rgba(255,255,255,0.5)]" />
+            </div>
 
             {/* Team B */}
             <div className="glass-card flex items-center justify-between p-6 rounded-xl relative overflow-hidden group">
@@ -738,13 +776,14 @@ export default function MatchDetail() {
 
           {/* Table Tennis Current Set Score */}
           {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.sets && match.result.tableTennis.sets.length > 0 && match.status === 'Live' && (
-            <div className="mt-8 glass-card p-6 rounded-xl relative overflow-hidden group">
+            <div className="mt-8 glass-card p-6 rounded-xl relative overflow-hidden group max-w-4xl mx-auto">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10">
                 <p className="text-center text-gray-400 text-sm mb-3">Current Set Score</p>
                 <div className="flex items-center justify-center gap-6">
                   {(() => {
-                    const currentSet = match.result.tableTennis.sets[match.result.tableTennis.sets.length - 1];
+                    // Find the current active set (first set without a winner)
+                    const currentSet = match.result.tableTennis.sets.find(set => !set.winner) || match.result.tableTennis.sets[match.result.tableTennis.sets.length - 1];
                     if (!currentSet) return null;
                     
                     const winningScore = match.matchType === 'Doubles' ? 15 : 11;
@@ -779,23 +818,23 @@ export default function MatchDetail() {
           animate={{ opacity: 1 }}
           className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-12"
         >
-          <div className="glass-card p-4 rounded-xl hover:border-primary/30 transition-all duration-300">
-            <p className="text-gray-400 mb-2">Round</p>
-            <p className="text-xl font-semibold text-primary">{match.round}</p>
+          <div className="glass-card p-4 rounded-xl hover:border-primary/30 transition-all duration-300 flex flex-col">
+            <p className="text-gray-400 mb-2 text-sm">Round</p>
+            <p className="text-xl font-semibold text-primary break-words">{match.round}</p>
           </div>
-          <div className="glass-card p-4 rounded-xl hover:border-primary/30 transition-all duration-300">
+          <div className="glass-card p-4 rounded-xl hover:border-primary/30 transition-all duration-300 flex flex-col">
             <div className="flex items-center gap-2 text-gray-400 mb-2">
-              <Clock className="w-5 h-5" />
-              <p>Time</p>
+              <Clock className="w-4 h-4 flex-shrink-0" />
+              <p className="text-sm">Time</p>
             </div>
             <p className="text-xl font-semibold text-primary">{formatTime(match.time)}</p>
           </div>
-          <div className="glass-card p-4 rounded-xl hover:border-primary/30 transition-all duration-300">
+          <div className="glass-card p-4 rounded-xl hover:border-primary/30 transition-all duration-300 flex flex-col">
             <div className="flex items-center gap-2 text-gray-400 mb-2">
-              <MapPin className="w-5 h-5" />
-              <p>Venue</p>
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <p className="text-sm">Venue</p>
             </div>
-            <p className="text-xl font-semibold text-primary">{match.venue}</p>
+            <p className="text-xl font-semibold text-primary break-words">{match.venue}</p>
           </div>
         </motion.div>
 

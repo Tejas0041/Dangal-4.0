@@ -930,13 +930,44 @@ export default function Home() {
             </h2>
           </div>
           
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {games.map((game, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            {loading ? (
+              // Skeleton placeholders
+              [...Array(3)].map((_, index) => (
+                <motion.div
+                  key={`skeleton-${index}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group relative bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden shadow-xl flex flex-col"
+                >
+                  {/* Image Skeleton */}
+                  <div className="relative h-64 overflow-hidden bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%]">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60" />
+                  </div>
+                  
+                  {/* Content Skeleton */}
+                  <div className="p-6 flex flex-col flex-1 space-y-4">
+                    {/* Title Skeleton */}
+                    <div className="h-8 bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%] rounded w-3/4" />
+                    
+                    {/* Description Skeleton */}
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%] rounded w-full" />
+                      <div className="h-4 bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%] rounded w-5/6" />
+                      <div className="h-4 bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%] rounded w-4/6" />
+                    </div>
+                    
+                    {/* Buttons Skeleton */}
+                    <div className="flex gap-3 mt-auto">
+                      <div className="flex-1 h-12 bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%] rounded-lg" />
+                      <div className="flex-1 h-12 bg-gradient-to-r from-yellow-900/20 via-primary/30 to-yellow-900/20 animate-shimmer bg-[length:200%_100%] rounded-lg" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              games.map((game, index) => (
                 <motion.div
                   key={game._id}
                   initial={{ opacity: 0, y: 20 }}
@@ -996,9 +1027,9 @@ export default function Home() {
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </section>
 

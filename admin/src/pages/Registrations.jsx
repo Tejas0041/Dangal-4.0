@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Loader from '../components/Loader';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -167,20 +168,7 @@ const Registrations = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: '50px',
-              height: '50px',
-              border: '4px solid rgba(255, 215, 0, 0.2)',
-              borderTop: '4px solid #FFD700',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1rem',
-            }} />
-            <p style={{ color: '#888' }}>Loading registrations...</p>
-          </div>
-        </div>
+        <Loader />
       </AdminLayout>
     );
   }
@@ -229,17 +217,17 @@ const Registrations = () => {
     <AdminLayout>
       <div>
         {/* Header Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? '0.75rem' : '1rem', marginBottom: '2rem' }}>
           <div style={{
             background: 'rgba(255, 215, 0, 0.1)',
             border: '1px solid rgba(255, 215, 0, 0.3)',
             borderRadius: '1rem',
-            padding: isMobile ? '1rem' : '1.5rem',
+            padding: isMobile ? '0.75rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '0.5rem' }}>
               {teams.length}
             </div>
-            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Teams
             </div>
           </div>
@@ -248,12 +236,12 @@ const Registrations = () => {
             background: 'rgba(34, 197, 94, 0.1)',
             border: '1px solid rgba(34, 197, 94, 0.3)',
             borderRadius: '1rem',
-            padding: isMobile ? '1rem' : '1.5rem',
+            padding: isMobile ? '0.75rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#22c55e', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 'bold', color: '#22c55e', marginBottom: '0.5rem' }}>
               {halls.length}
             </div>
-            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Participating Halls
             </div>
           </div>
@@ -262,12 +250,12 @@ const Registrations = () => {
             background: 'rgba(59, 130, 246, 0.1)',
             border: '1px solid rgba(59, 130, 246, 0.3)',
             borderRadius: '1rem',
-            padding: isMobile ? '1rem' : '1.5rem',
+            padding: isMobile ? '0.75rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#3b82f6', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 'bold', color: '#3b82f6', marginBottom: '0.5rem' }}>
               {games.length}
             </div>
-            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Active Events
             </div>
           </div>
@@ -276,12 +264,12 @@ const Registrations = () => {
             background: 'rgba(168, 85, 247, 0.1)',
             border: '1px solid rgba(168, 85, 247, 0.3)',
             borderRadius: '1rem',
-            padding: isMobile ? '1rem' : '1.5rem',
+            padding: isMobile ? '0.75rem' : '1.5rem',
           }}>
-            <div style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', color: '#a855f7', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 'bold', color: '#a855f7', marginBottom: '0.5rem' }}>
               {teams.reduce((sum, team) => sum + team.players.length, 0)}
             </div>
-            <div style={{ color: '#888', fontSize: isMobile ? '0.75rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Players
             </div>
           </div>
@@ -298,13 +286,13 @@ const Registrations = () => {
           position: 'relative',
           zIndex: 50,
         }}>
-          <h3 style={{ color: '#FFD700', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: '600' }}>
+          <h3 style={{ color: '#FFD700', marginBottom: '1rem', fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: '600' }}>
             Filters & Search
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', position: 'relative', zIndex: 50 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', gap: isMobile ? '0.75rem' : '1rem', position: 'relative', zIndex: 50 }}>
             {/* Search Bar */}
             <div>
-              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                 Search
               </label>
               <div style={{ position: 'relative' }}>
@@ -312,30 +300,30 @@ const Registrations = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by team, hall, event, or player..."
+                  placeholder={isMobile ? "Search..." : "Search by team, hall, event, or player..."}
                   style={{
                     width: '100%',
-                    padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                    padding: isMobile ? '0.65rem 0.65rem 0.65rem 2.25rem' : '0.75rem 0.75rem 0.75rem 2.5rem',
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(255, 215, 0, 0.3)',
                     borderRadius: '0.5rem',
                     color: '#fff',
-                    fontSize: '0.95rem',
+                    fontSize: isMobile ? '0.85rem' : '0.95rem',
                     outline: 'none',
                   }}
                   onFocus={(e) => e.target.style.borderColor = 'rgba(255, 215, 0, 0.5)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255, 215, 0, 0.3)'}
                 />
                 <svg
-                  width="18"
-                  height="18"
+                  width={isMobile ? "16" : "18"}
+                  height={isMobile ? "16" : "18"}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="#888"
                   strokeWidth="2"
                   style={{
                     position: 'absolute',
-                    left: '0.75rem',
+                    left: isMobile ? '0.65rem' : '0.75rem',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     pointerEvents: 'none',
@@ -349,7 +337,7 @@ const Registrations = () => {
 
             {/* Hall Filter */}
             <div>
-              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                 Hall/Hostel
               </label>
               <div style={{ position: 'relative', zIndex: showHallDropdown ? 102 : 1 }}>
@@ -361,13 +349,13 @@ const Registrations = () => {
                   }}
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
+                    padding: isMobile ? '0.65rem' : '0.75rem',
                     paddingRight: '2.5rem',
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(255, 215, 0, 0.3)',
                     borderRadius: '0.5rem',
                     color: '#fff',
-                    fontSize: '0.95rem',
+                    fontSize: isMobile ? '0.85rem' : '0.95rem',
                     cursor: 'pointer',
                     textAlign: 'left',
                     outline: 'none',
@@ -530,7 +518,7 @@ const Registrations = () => {
 
             {/* Event Filter */}
             <div>
-              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                 Event
               </label>
               <div style={{ position: 'relative', zIndex: showGameDropdown ? 102 : 1 }}>
@@ -541,13 +529,13 @@ const Registrations = () => {
                   }}
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
+                    padding: isMobile ? '0.65rem' : '0.75rem',
                     paddingRight: '2.5rem',
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(255, 215, 0, 0.3)',
                     borderRadius: '0.5rem',
                     color: '#fff',
-                    fontSize: '0.95rem',
+                    fontSize: isMobile ? '0.85rem' : '0.95rem',
                     cursor: 'pointer',
                     textAlign: 'left',
                     outline: 'none',
@@ -654,7 +642,7 @@ const Registrations = () => {
 
             {/* Team Name Filter */}
             <div>
-              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                 Team Name
               </label>
               <div style={{ position: 'relative', zIndex: showTeamNameDropdown ? 102 : 1 }}>
@@ -666,13 +654,13 @@ const Registrations = () => {
                   }}
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
+                    padding: isMobile ? '0.65rem' : '0.75rem',
                     paddingRight: '2.5rem',
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(255, 215, 0, 0.3)',
                     borderRadius: '0.5rem',
                     color: '#fff',
-                    fontSize: '0.95rem',
+                    fontSize: isMobile ? '0.85rem' : '0.95rem',
                     cursor: 'pointer',
                     textAlign: 'left',
                     outline: 'none',
@@ -831,8 +819,10 @@ const Registrations = () => {
               <div style={{ 
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(255, 215, 0, 0.5) rgba(0, 0, 0, 0.2)',
               }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '800px' : 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '900px' : 'auto' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255, 215, 0, 0.1)', borderBottom: '1px solid rgba(255, 215, 0, 0.2)' }}>
                       <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: '600', fontSize: isMobile ? '0.8rem' : '0.9rem', whiteSpace: 'nowrap' }}>Hall/Hostel</th>
@@ -1099,6 +1089,25 @@ const Registrations = () => {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        
+        /* Custom scrollbar for table */
+        div[style*="overflowX: auto"]::-webkit-scrollbar {
+          height: 8px;
+        }
+        
+        div[style*="overflowX: auto"]::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+        }
+        
+        div[style*="overflowX: auto"]::-webkit-scrollbar-thumb {
+          background: rgba(255, 215, 0, 0.5);
+          border-radius: 4px;
+        }
+        
+        div[style*="overflowX: auto"]::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 215, 0, 0.7);
         }
       `}</style>
     </AdminLayout>

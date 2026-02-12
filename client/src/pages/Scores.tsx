@@ -459,26 +459,30 @@ export default function Scores() {
                   
                   <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     {/* Game Info */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-3">
                       {match.game.icon && (
-                        <img src={match.game.icon} alt="" className="w-10 h-10 md:w-12 md:h-12" />
+                        <img src={match.game.icon} alt="" className="w-8 h-8 md:w-12 md:h-12" />
                       )}
-                      <div>
+                      <div className="flex flex-col items-center md:items-start">
                         <h3 className="text-lg md:text-xl font-bold text-primary">{match.game.name}</h3>
                         <p className="text-sm text-gray-400">Match {match.matchNumber} • {match.round}</p>
                       </div>
                     </div>
 
                     {/* Score */}
-                    <div className="flex items-center gap-4 md:gap-8">
+                    <div className="flex md:grid md:grid-cols-[1.4fr_auto_1fr] items-center gap-4 md:gap-8">
                       {/* Team A */}
-                      <div className="flex-1 text-right">
-                        <p className="text-sm md:text-base font-semibold truncate">{getTeamDisplayName(match.teamA)}</p>
-                        <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamA)}</p>
+                      <div className="flex-1 md:flex-none text-right">
+                        <div className="flex items-start justify-end gap-2">
+                          <div className="md:min-w-0">
+                            <p className="text-sm md:text-base font-semibold break-words md:whitespace-nowrap">{getTeamDisplayName(match.teamA)}</p>
+                            <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamA)}</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Score Display */}
-                      <div className="flex flex-col items-center gap-1">
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
                         <div className="flex items-center gap-2 md:gap-4 relative">
                           <div className="text-center relative">
                             <div className="text-2xl md:text-4xl font-bold text-primary">{getScore(match, 'A')}</div>
@@ -529,9 +533,13 @@ export default function Scores() {
                       </div>
 
                       {/* Team B */}
-                      <div className="flex-1">
-                        <p className="text-sm md:text-base font-semibold truncate">{getTeamDisplayName(match.teamB)}</p>
-                        <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamB)}</p>
+                      <div className="flex-1 md:flex-none">
+                        <div className="flex items-start gap-2">
+                          <div className="md:min-w-0">
+                            <p className="text-sm md:text-base font-semibold break-words md:whitespace-nowrap">{getTeamDisplayName(match.teamB)}</p>
+                            <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamB)}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -578,31 +586,42 @@ export default function Scores() {
                   
                   <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     {/* Game Info */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-3">
                       {match.game.icon && (
-                        <img src={match.game.icon} alt="" className="w-10 h-10 md:w-12 md:h-12 opacity-70" />
+                        <img src={match.game.icon} alt="" className="w-8 h-8 md:w-12 md:h-12 opacity-70" />
                       )}
-                      <div>
+                      <div className="flex flex-col items-center md:items-start">
                         <h3 className="text-lg md:text-xl font-bold text-gray-300">{match.game.name}</h3>
                         <p className="text-sm text-gray-500">Match {match.matchNumber} • {match.round}</p>
                       </div>
                     </div>
 
                     {/* Score */}
-                    <div className="flex items-center gap-4 md:gap-8">
+                    <div className="flex md:grid md:grid-cols-[1fr_auto_1fr] items-center gap-4 md:gap-8">
                       {/* Team A */}
-                      <div className="flex-1 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <p className="text-sm md:text-base font-semibold truncate">{getTeamDisplayName(match.teamA)}</p>
+                      <div className="flex-1 md:flex-none text-right">
+                        <div className="flex flex-col md:flex-row items-end md:items-start justify-end gap-2">
                           {isWinner(match, match.teamA._id) && (
-                            <Trophy className="w-4 h-4 text-yellow-500" />
+                            <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black flex-shrink-0">
+                              <Trophy className="w-3 h-3" />
+                              Winner
+                            </span>
                           )}
+                          <div className="md:min-w-0">
+                            <p className="text-sm md:text-base font-semibold break-words md:whitespace-nowrap">{getTeamDisplayName(match.teamA)}</p>
+                            <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamA)}</p>
+                            {isWinner(match, match.teamA._id) && (
+                              <span className="inline-flex md:hidden items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black mt-1">
+                                <Trophy className="w-3 h-3" />
+                                Winner
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamA)}</p>
                       </div>
 
                       {/* Score Display */}
-                      <div className="flex flex-col items-center gap-1">
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
                         <div className="flex items-center gap-2 md:gap-4">
                           <div className={`text-2xl md:text-4xl font-bold ${isWinner(match, match.teamA._id) ? 'text-yellow-500' : 'text-gray-400'}`}>
                             {getScore(match, 'A')}
@@ -629,14 +648,25 @@ export default function Scores() {
                       </div>
 
                       {/* Team B */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 md:flex-none">
+                        <div className="flex flex-col md:flex-row items-start gap-2">
+                          <div className="md:min-w-0">
+                            <p className="text-sm md:text-base font-semibold break-words md:whitespace-nowrap">{getTeamDisplayName(match.teamB)}</p>
+                            <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamB)}</p>
+                            {isWinner(match, match.teamB._id) && (
+                              <span className="inline-flex md:hidden items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black mt-1">
+                                <Trophy className="w-3 h-3" />
+                                Winner
+                              </span>
+                            )}
+                          </div>
                           {isWinner(match, match.teamB._id) && (
-                            <Trophy className="w-4 h-4 text-yellow-500" />
+                            <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black flex-shrink-0">
+                              <Trophy className="w-3 h-3" />
+                              Winner
+                            </span>
                           )}
-                          <p className="text-sm md:text-base font-semibold truncate">{getTeamDisplayName(match.teamB)}</p>
                         </div>
-                        <p className="text-xs text-gray-500">{getTeamSubtitle(match.teamB)}</p>
                       </div>
                     </div>
 

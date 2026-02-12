@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, Trophy } from "lucide-react";
 import api from "@/lib/api";
 
@@ -47,6 +48,7 @@ interface Match {
 }
 
 export default function Matches() {
+  const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchesVisible, setMatchesVisible] = useState<boolean | null>(null);
   const [selectedRound, setSelectedRound] = useState<string>("All");
@@ -203,10 +205,12 @@ export default function Matches() {
             </div>
 
             {/* VS */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-              <div className="text-primary font-bold text-[10px] sm:text-sm">VS</div>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+            <div className="flex items-center gap-2 sm:gap-3 w-full">
+              <div className="flex-1 min-w-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+              <div className="flex-shrink-0">
+                <img src="/vs.webp" alt="VS" className="w-8 h-8 sm:w-10 sm:h-10 opacity-60 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+              </div>
+              <div className="flex-1 min-w-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
             </div>
 
             {/* Team B */}
@@ -243,6 +247,20 @@ export default function Matches() {
               <div className={`text-white font-semibold text-[10px] sm:text-sm mt-auto text-center sm:${isLeft ? 'text-right' : 'text-left'}`}>{match.venue}</div>
             </div>
           </div>
+
+          {/* View Score Button */}
+          {(match.status === 'Live' || match.status === 'Completed') && (
+            <button
+              onClick={() => navigate(`/match/${match._id}`)}
+              className="w-full py-2 sm:py-2.5 bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 border border-primary/40 hover:border-primary/60 rounded-lg text-primary font-semibold text-xs sm:text-sm transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              View Score
+            </button>
+          )}
         </div>
       </>
     );

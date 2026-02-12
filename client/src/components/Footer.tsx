@@ -62,8 +62,23 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 text-center">
-          <p className="text-xs text-muted-foreground">© 2026 Dangal 4.0. All rights reserved.</p>
+        <div className="border-t border-white/10 pt-8">
+          <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-4">
+            {/* Copyright */}
+            <p className="text-xs text-muted-foreground">© 2026 Dangal 4.0. All rights reserved.</p>
+            
+            {/* Developer Info */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 text-xs">
+              <span className="text-muted-foreground">For website queries, contact developer:</span>
+              <a 
+                href="mailto:tejaspawar1901.work@gmail.com"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-primary/10 border border-white/10 hover:border-primary/30 rounded-full transition-all group"
+              >
+                <Mail size={14} className="text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-white font-medium">Tejas Pawar</span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
