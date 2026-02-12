@@ -173,6 +173,8 @@ export default function Register() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('Client: Selected file:', file.name, 'Size:', file.size, 'Type:', file.type);
+
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       toast({
@@ -186,7 +188,7 @@ export default function Register() {
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Image size should be less than 5MB",
+        description: "Image size should be less than 5MB. Please compress the image or take a new photo.",
         variant: "destructive",
       });
       return;
@@ -197,17 +199,40 @@ export default function Register() {
     formData.append('image', file);
 
     try {
+      console.log('Client: Starting upload...');
       const response = await api.post('/api/upload/payment', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000, // 60 second timeout for large files
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = progressEvent.total 
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            : 0;
+          console.log('Upload progress:', percentCompleted + '%');
+        }
       });
+      console.log('Client: Upload successful');
       setPaymentScreenshot(response.data.url);
       toast({
         title: "Upload Successful",
         description: "Payment screenshot uploaded",
       });
     } catch (error: any) {
-      console.error('Upload error:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload payment screenshot';
+      console.error('Client: Upload error:', error);
+      console.error('Client: Error response:', error.response?.data);
+      console.error('Client: Error status:', error.response?.status);
+      
+      let errorMessage = 'Failed to upload payment screenshot';
+      
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Upload timeout. Please try with a smaller image or better internet connection.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Upload Failed",
         description: errorMessage,
@@ -215,6 +240,8 @@ export default function Register() {
       });
     } finally {
       setUploadingPayment(false);
+      // Reset the input so the same file can be selected again
+      e.target.value = '';
     }
   };
 
@@ -905,7 +932,7 @@ export default function Register() {
                                 <div className="flex-1">
                                   <input
                                     type="file"
-                                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                                    accept="image/*"
                                     onChange={handlePaymentUpload}
                                     disabled={uploadingPayment}
                                     className="hidden"
