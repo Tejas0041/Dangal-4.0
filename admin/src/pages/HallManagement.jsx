@@ -28,15 +28,26 @@ const HallManagement = () => {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'boys', 'girls'
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'boys', 'girls', 'registered', 'not-registered'
   const [activeView, setActiveView] = useState('halls'); // 'halls', 'jmcrs'
   const [hallTeams, setHallTeams] = useState({});
+  const [teams, setTeams] = useState([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchHalls();
+    fetchTeams();
   }, []);
+
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/teams/all`, { withCredentials: true });
+      setTeams(response.data);
+    } catch (error) {
+      console.error('Fetch teams error:', error);
+    }
+  };
 
   const fetchHalls = async () => {
     setFetchingHalls(true);
@@ -214,7 +225,23 @@ const HallManagement = () => {
   // Filter halls based on search and active tab
   const filteredHalls = halls.filter(hall => {
     const matchesSearch = hall.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab = activeTab === 'all' || hall.type === activeTab;
+    
+    // Check if hall has any team registrations
+    const hallId = hall._id;
+    const hasRegistrations = teams.some(team => {
+      const teamHallId = team.hallId?._id || team.hallId;
+      return teamHallId === hallId;
+    });
+    
+    let matchesTab = true;
+    if (activeTab === 'boys' || activeTab === 'girls') {
+      matchesTab = hall.type === activeTab;
+    } else if (activeTab === 'registered') {
+      matchesTab = hasRegistrations;
+    } else if (activeTab === 'not-registered') {
+      matchesTab = !hasRegistrations;
+    }
+    
     return matchesSearch && matchesTab;
   }).sort((a, b) => {
     // Natural sort (handles numbers correctly)
@@ -224,7 +251,9 @@ const HallManagement = () => {
   const hallCounts = {
     all: halls.length,
     boys: halls.filter(h => h.type === 'boys').length,
-    girls: halls.filter(h => h.type === 'girls').length
+    girls: halls.filter(h => h.type === 'girls').length,
+    registered: halls.filter(h => teams.some(t => (t.hallId?._id || t.hallId) === h._id)).length,
+    'not-registered': halls.filter(h => !teams.some(t => (t.hallId?._id || t.hallId) === h._id)).length
   };
 
   return (
@@ -394,7 +423,9 @@ const HallManagement = () => {
           {[
             { key: 'all', label: 'All', count: hallCounts.all },
             { key: 'boys', label: "Boys' Hall/Hostel", count: hallCounts.boys },
-            { key: 'girls', label: "Girls' Hall/Hostel", count: hallCounts.girls }
+            { key: 'girls', label: "Girls' Hall/Hostel", count: hallCounts.girls },
+            { key: 'registered', label: 'Registered', count: hallCounts.registered },
+            { key: 'not-registered', label: 'Not Registered', count: hallCounts['not-registered'] }
           ].map(tab => (
             <button
               key={tab.key}
@@ -750,7 +781,9 @@ const HallManagement = () => {
             {[
               { key: 'all', label: 'All', count: hallCounts.all },
               { key: 'boys', label: "Boys' Hall/Hostel", count: hallCounts.boys },
-              { key: 'girls', label: "Girls' Hall/Hostel", count: hallCounts.girls }
+              { key: 'girls', label: "Girls' Hall/Hostel", count: hallCounts.girls },
+              { key: 'registered', label: 'Registered', count: hallCounts.registered },
+              { key: 'not-registered', label: 'Not Registered', count: hallCounts['not-registered'] }
             ].map(tab => (
               <button
                 key={tab.key}

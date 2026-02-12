@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
 import User from '../models/User.js';
+import Hall from '../models/Hall.js';
 import { authenticateAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
@@ -136,9 +137,21 @@ router.get('/users', authenticateAdmin, async (req, res) => {
       .select('-googleId')
       .sort({ createdAt: -1 });
 
+    // Fetch all halls to match users with their halls based on JMCR gsuite email
+    const halls = await Hall.find();
+    
+    // Add hall information to each user
+    const usersWithHalls = users.map(user => {
+      const userHall = halls.find(hall => hall.jmcr?.gsuite === user.email);
+      return {
+        ...user.toObject(),
+        hall: userHall ? { _id: userHall._id, name: userHall.name, type: userHall.type } : null
+      };
+    });
+
     res.json({
-      users,
-      total: users.length,
+      users: usersWithHalls,
+      total: usersWithHalls.length,
     });
   } catch (error) {
     console.error('Get users error:', error);

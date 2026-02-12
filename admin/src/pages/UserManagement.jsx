@@ -153,7 +153,7 @@ const UserManagement = () => {
                   Email
                 </th>
                 <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: 'bold', fontSize: isMobile ? '0.75rem' : '0.875rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                  Role
+                  Hall/Hostel
                 </th>
                 <th style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', color: '#FFD700', fontWeight: 'bold', fontSize: isMobile ? '0.75rem' : '0.875rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   Joined
@@ -204,19 +204,8 @@ const UserManagement = () => {
                     </td>
                     <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#fff', fontSize: isMobile ? '0.875rem' : '1rem', whiteSpace: 'nowrap' }}>{user.name}</td>
                     <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#aaa', fontSize: isMobile ? '0.8rem' : '0.875rem', whiteSpace: 'nowrap' }}>{user.email}</td>
-                    <td style={{ padding: isMobile ? '0.75rem' : '1rem' }}>
-                      <span style={{
-                        padding: isMobile ? '0.2rem 0.6rem' : '0.25rem 0.75rem',
-                        background: user.role === 'admin' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                        color: user.role === 'admin' ? '#FFD700' : '#aaa',
-                        borderRadius: '9999px',
-                        fontSize: isMobile ? '0.7rem' : '0.75rem',
-                        fontWeight: 'bold',
-                        textTransform: 'uppercase',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {user.role}
-                      </span>
+                    <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: user.hall ? '#fff' : '#666', fontSize: isMobile ? '0.875rem' : '1rem', whiteSpace: 'nowrap' }}>
+                      {user.hall ? user.hall.name : 'Not Assigned'}
                     </td>
                     <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#aaa', fontSize: isMobile ? '0.8rem' : '0.875rem', whiteSpace: 'nowrap' }}>
                       {formatDate(user.createdAt)}
