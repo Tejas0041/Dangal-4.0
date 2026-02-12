@@ -189,11 +189,11 @@ export default function Register() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 1 * 1024 * 1024) {
       console.log('File too large:', file.size);
       toast({
         title: "File Too Large",
-        description: `Image is ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum is 5MB. Please compress or use a smaller image.`,
+        description: `Image is ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum is 1MB. Please compress or use a smaller image.`,
         variant: "destructive",
       });
       return;
