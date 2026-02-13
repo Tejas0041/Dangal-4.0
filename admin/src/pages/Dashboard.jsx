@@ -26,10 +26,11 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       // Fetch all data in parallel
-      const [usersRes, settingsRes, matchesRes] = await Promise.all([
+      const [usersRes, settingsRes, matchesRes, teamsRes] = await Promise.all([
         axios.get(`${API_URL}/api/admin/users`, { withCredentials: true }),
         axios.get(`${API_URL}/api/event/settings`),
-        axios.get(`${API_URL}/api/schedule`)
+        axios.get(`${API_URL}/api/schedule`),
+        axios.get(`${API_URL}/api/teams/all`, { withCredentials: true })
       ]);
 
       setUserCount(usersRes.data.total || 0);
@@ -41,8 +42,8 @@ const Dashboard = () => {
       const activeMatches = matchesRes.data.filter(m => m.status === 'Live');
       setActiveMatchesCount(activeMatches.length);
       
-      // Count registrations (users who have registered)
-      setRegistrationCount(usersRes.data.total || 0);
+      // Count team registrations
+      setRegistrationCount(teamsRes.data.length || 0);
     } catch (err) {
       console.error('Fetch dashboard data error:', err);
     }
