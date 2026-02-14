@@ -76,7 +76,7 @@ const pastWinnersData: Record<"dangal1.0" | "dangal2.0" | "dangal3.0", Winner[]>
       year: "2023", 
       achievement: "Champions",
       description: "In an exhilarating showcase of skill and precision, Wolfenden Hall triumphed in Men's Table Tennis at Dangal 2023. Their agile plays, strategic shots, and remarkable sportsmanship secured their well-deserved victory in a thrilling final match.",
-      image: "/winners-image/dangal1.0-2023/wolfenden.webp"
+      image: "/winners-image/dangal1.0-2023/wolfenden1.webp"
     },
     { 
       name: "Macdonald Hall", 

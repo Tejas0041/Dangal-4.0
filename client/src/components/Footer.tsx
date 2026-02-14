@@ -26,7 +26,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><a href="/#about" className="hover:text-primary transition-colors">About the Event</a></li>
               <li><a href="/#events" className="hover:text-primary transition-colors">Competitions</a></li>
-              <li><a href="/gallery" className="hover:text-primary transition-colors">Gallery</a></li>
+              <li><a href="/#gallery" className="hover:text-primary transition-colors">Gallery</a></li>
               <li><a href="/register" className="hover:text-primary transition-colors">Register Now</a></li>
             </ul>
           </div>
