@@ -677,7 +677,7 @@ const Dashboard = () => {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
               ), 
-              path: '/user-management' 
+              path: '/users' 
             },
             { 
               label: 'Event Settings', 
@@ -689,7 +689,7 @@ const Dashboard = () => {
                   <path d="M12 2l2 3h3l-2 3 2 3h-3l-2 3-2-3H7l2-3-2-3h3l2-3z"></path>
                 </svg>
               ), 
-              path: '/event-settings' 
+              path: '/event-management' 
             },
             { 
               label: 'Manage Schedule', 
@@ -701,7 +701,7 @@ const Dashboard = () => {
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               ), 
-              path: '/schedule-management' 
+              path: '/schedule' 
             },
             { 
               label: 'Score Management', 
@@ -712,7 +712,7 @@ const Dashboard = () => {
                   <line x1="6" y1="20" x2="6" y2="14"></line>
                 </svg>
               ), 
-              path: '/score-management' 
+              path: '/scores' 
             },
           ].map((action, index) => (
             <button

@@ -9,6 +9,7 @@ import Registrations from './pages/Registrations';
 import Teams from './pages/Teams';
 import ScheduleManagement from './pages/ScheduleManagement';
 import ScoreManagement from './pages/ScoreManagement';
+import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -82,6 +83,8 @@ function App() {
             }
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* 404 - Catch all unmatched routes */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
