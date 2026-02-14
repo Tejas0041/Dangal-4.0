@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import Toast from '../components/Toast';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
 
@@ -20,6 +21,17 @@ const Teams = () => {
   const [showHallDropdown, setShowHallDropdown] = useState(false);
   const [showGameDropdown, setShowGameDropdown] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    secondTeamName: '',
+    players: []
+  });
+  const [savingTeam, setSavingTeam] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [editPaymentMode, setEditPaymentMode] = useState(false);
+  const [paymentStatusChanges, setPaymentStatusChanges] = useState({});
+  const [savingPaymentStatus, setSavingPaymentStatus] = useState(false);
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('all');
 
   useEffect(() => {
     fetchData();
@@ -84,12 +96,164 @@ const Teams = () => {
       team.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       getHallName(team.hallId).toLowerCase().includes(searchQuery.toLowerCase()) ||
       getGameName(team.gameId).toLowerCase().includes(searchQuery.toLowerCase());
-    return hallMatch && gameMatch && searchMatch;
+    const paymentMatch = selectedPaymentStatus === 'all' || 
+      (selectedPaymentStatus === 'paid' && team.paymentReceived) ||
+      (selectedPaymentStatus === 'unpaid' && !team.paymentReceived);
+    return hallMatch && gameMatch && searchMatch && paymentMatch;
   });
 
   const viewTeamDetails = (team) => {
     setSelectedTeam(team);
     setShowTeamModal(true);
+    setEditMode(false);
+    setEditFormData({
+      secondTeamName: team.secondTeamName || '',
+      players: team.players.map(p => ({ ...p }))
+    });
+  };
+
+  const handleEditClick = () => {
+    setEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setEditFormData({
+      secondTeamName: selectedTeam.secondTeamName || '',
+      players: selectedTeam.players.map(p => ({ ...p }))
+    });
+  };
+
+  const handleAddPlayer = () => {
+    const game = games.find(g => g._id === (selectedTeam.gameId._id || selectedTeam.gameId));
+    const maxPlayers = game?.maxPlayersPerTeam || 15;
+    
+    if (editFormData.players.length >= maxPlayers) {
+      setToast({ message: `Maximum ${maxPlayers} players allowed for ${game?.name}`, type: 'error' });
+      return;
+    }
+    
+    setEditFormData(prev => ({
+      ...prev,
+      players: [...prev.players, { name: '' }]
+    }));
+  };
+
+  const handleRemovePlayer = (index) => {
+    const game = games.find(g => g._id === (selectedTeam.gameId._id || selectedTeam.gameId));
+    const minPlayers = game?.minPlayersPerTeam || 1;
+    
+    if (editFormData.players.length <= minPlayers) {
+      setToast({ message: `Minimum ${minPlayers} players required for ${game?.name}`, type: 'error' });
+      return;
+    }
+    
+    setEditFormData(prev => ({
+      ...prev,
+      players: prev.players.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handlePlayerNameChange = (index, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      players: prev.players.map((p, i) => i === index ? { ...p, name: value } : p)
+    }));
+  };
+
+  const handleSaveTeam = async () => {
+    // Validate
+    if (editFormData.players.some(p => !p.name.trim())) {
+      setToast({ message: 'All player names must be filled', type: 'error' });
+      return;
+    }
+
+    const game = games.find(g => g._id === (selectedTeam.gameId._id || selectedTeam.gameId));
+    if (editFormData.players.length < game?.minPlayersPerTeam || editFormData.players.length > game?.maxPlayersPerTeam) {
+      setToast({ message: `Team must have between ${game?.minPlayersPerTeam} and ${game?.maxPlayersPerTeam} players`, type: 'error' });
+      return;
+    }
+
+    setSavingTeam(true);
+    try {
+      const response = await axios.put(
+        `${API_URL}/api/teams/${selectedTeam._id}`,
+        {
+          secondTeamName: editFormData.secondTeamName.trim() || null,
+          players: editFormData.players
+        },
+        { withCredentials: true }
+      );
+
+      // Update local state
+      setTeams(teams.map(t => t._id === selectedTeam._id ? response.data : t));
+      setSelectedTeam(response.data);
+      setEditMode(false);
+      setToast({ message: 'Team updated successfully!', type: 'success' });
+    } catch (error) {
+      console.error('Error updating team:', error);
+      setToast({ message: error.response?.data?.message || 'Failed to update team', type: 'error' });
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  const handleTogglePaymentStatus = async (teamId) => {
+    if (editPaymentMode) {
+      // In edit mode, just track the change locally
+      setPaymentStatusChanges(prev => ({
+        ...prev,
+        [teamId]: !prev[teamId]
+      }));
+    }
+  };
+
+  const handleSavePaymentChanges = async () => {
+    const changedTeamIds = Object.keys(paymentStatusChanges).filter(id => paymentStatusChanges[id]);
+    
+    if (changedTeamIds.length === 0) {
+      setToast({ message: 'No changes to save', type: 'error' });
+      return;
+    }
+
+    setSavingPaymentStatus(true);
+    try {
+      // Send requests for all changed teams
+      await Promise.all(
+        changedTeamIds.map(teamId =>
+          axios.patch(
+            `${API_URL}/api/teams/${teamId}/payment-status`,
+            {},
+            { withCredentials: true }
+          )
+        )
+      );
+
+      // Refresh teams data
+      const teamsRes = await axios.get(`${API_URL}/api/teams/all`, { withCredentials: true });
+      setTeams(teamsRes.data);
+      
+      setPaymentStatusChanges({});
+      setEditPaymentMode(false);
+      setToast({ message: `Updated payment status for ${changedTeamIds.length} team(s)`, type: 'success' });
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      setToast({ message: error.response?.data?.message || 'Failed to update payment status', type: 'error' });
+    } finally {
+      setSavingPaymentStatus(false);
+    }
+  };
+
+  const handleCancelPaymentEdit = () => {
+    setPaymentStatusChanges({});
+    setEditPaymentMode(false);
+  };
+
+  const getTeamPaymentStatus = (team) => {
+    if (paymentStatusChanges.hasOwnProperty(team._id)) {
+      return paymentStatusChanges[team._id] ? !team.paymentReceived : team.paymentReceived;
+    }
+    return team.paymentReceived;
   };
 
   const generatePDF = async () => {
@@ -130,141 +294,306 @@ const Teams = () => {
         if (!isFirstPage) doc.addPage();
         isFirstPage = false;
 
-        let yPos = 18;
+        let yPos = 10;
 
-        // Header
+        // ===== HEADER =====
         doc.setFontSize(13);
-        doc.text('Macdonald Hall Presents', pageWidth / 2, yPos, { align: 'center' });
+        doc.setFont("helvetica", "normal");
+        doc.text("Macdonald Hall Presents", pageWidth / 2, yPos, {
+          align: "center",
+        });
 
-        yPos += 10;
+        // yPos += 10;
 
-        // ===== LOGO + DANGAL CENTER BLOCK =====
-        const imgProps = doc.getImageProperties(logoImg);
-        const logoHeight = 40;
-        const logoWidth = (imgProps.width / imgProps.height) * logoHeight;
+        // ===== LOGO CENTERED =====
+        // const imgProps = doc.getImageProperties(logoImg);
+        // const logoHeight = 30; // reduced
+        // const logoWidth = (imgProps.width / imgProps.height) * logoHeight;
 
-        const dangalFontSize = 42;
+        // doc.addImage(
+        //   logoImg,
+        //   "WEBP",
+        //   (pageWidth - logoWidth) / 2,
+        //   yPos,
+        //   logoWidth,
+        //   logoHeight
+        // );
 
-        doc.setFont('times', 'bold');
-        doc.setFontSize(dangalFontSize);
+        yPos += 15;
 
-        const dangalWidth = doc.getTextWidth('DANGAL 4.0');
-
-        const totalWidth = logoWidth + 15 + dangalWidth;
-        const startX = (pageWidth - totalWidth) / 2;
-
-        // logo
-        doc.addImage(
-          logoImg,
-          'WEBP',
-          startX,
-          yPos,
-          logoWidth,
-          logoHeight
-        );
-
-        // dangal text (vertically centered with logo)
-        doc.text(
-          'DANGAL 4.0',
-          startX + logoWidth + 15,
-          yPos + logoHeight / 2 + dangalFontSize / 3
-        );
-
-        yPos += logoHeight + 15;
-
-        // Game Title
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
-        doc.text(
-          `Teams for ${gameName} (${hallName})`,
-          pageWidth / 2,
-          yPos,
-          { align: 'center' }
-        );
+        // ===== DANGAL CENTERED BELOW LOGO =====
+        doc.setFont("times", "bold");
+        doc.setFontSize(34); // slightly reduced
+        doc.text("DANGAL 4.0", pageWidth / 2, yPos, { align: "center" });
 
         yPos += 18;
 
-        const separatorX = pageWidth / 2;
-        doc.line(separatorX, yPos, separatorX, pageHeight - 20);
-
-        const teamA = teamsForGame.find(t => t.teamName === 'A') || teamsForGame[0];
-        const teamB = teamsForGame.find(t => t.teamName === 'B') || teamsForGame[1];
-
-        const leftMargin = 20;
-        const rightMargin = pageWidth - 20;
-
-        const columnWidth = separatorX - leftMargin - 10;
-
-        // ===== TEAM TITLE LARGE =====
-        const teamTitleSize = 24;
-        const playerSize = 19;
-        const lineGap = 11;
-
-        doc.setFontSize(teamTitleSize);
-        doc.setFont('helvetica', 'bold');
-
-        const teamATitle = teamA.secondTeamName
-          ? `${teamA.secondTeamName} (Team ${teamA.teamName})`
-          : `Team ${teamA.teamName}`;
-
-        const teamBTitle = teamB.secondTeamName
-          ? `${teamB.secondTeamName} (Team ${teamB.teamName})`
-          : `Team ${teamB.teamName}`;
-
-        const wrappedATitle = doc.splitTextToSize(teamATitle, columnWidth);
-        doc.text(wrappedATitle, leftMargin, yPos);
-
-        const wrappedBTitle = doc.splitTextToSize(teamBTitle, columnWidth);
-        doc.text(wrappedBTitle, rightMargin, yPos, { align: 'right' });
-
-        let yA = yPos + wrappedATitle.length * lineGap + 6;
-        let yB = yPos + wrappedBTitle.length * lineGap + 6;
-
-        doc.setFontSize(playerSize);
-        doc.setFont('helvetica', 'normal');
-
-        // ===== LEFT PLAYERS =====
-        teamA.players.forEach((player, idx) => {
-          const numberText = `${idx + 1}.`;
-          doc.text(numberText, leftMargin, yA);
-
-          const nameWrapped = doc.splitTextToSize(
-            player.name,
-            columnWidth - 15
-          );
-
-          doc.text(nameWrapped, leftMargin + 15, yA);
-
-          yA += nameWrapped.length * lineGap;
+        // ===== GAME TITLE =====
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.text(`Teams for ${gameName} (${hallName})`, pageWidth / 2, yPos, {
+          align: "center",
         });
 
-        // ===== RIGHT PLAYERS (aligned numbers column) =====
-        teamB.players.forEach((player, idx) => {
-          const numberText = `${idx + 1}.`;
-          doc.text(numberText, rightMargin - columnWidth, yB);
+        yPos += 20;
 
-          const nameWrapped = doc.splitTextToSize(
-            player.name,
-            columnWidth - 15
-          );
+        const teamA = teamsForGame.find((t) => t.teamName === "A");
+        const teamB = teamsForGame.find((t) => t.teamName === "B");
+        
+        const teamTitleSize = 21;
+        const playerSize = 20;
+        const lineGap = 12;
 
-          doc.text(nameWrapped, rightMargin - 15, yB, {
-            align: 'right'
+        // Check if only one team exists
+        if (teamsForGame.length === 1) {
+          // Single team - display centered
+          const singleTeam = teamsForGame[0];
+          const centerX = pageWidth / 2;
+          const columnWidth = pageWidth - 50; // Full width with margins
+
+          doc.setFontSize(teamTitleSize);
+          doc.setFont("helvetica", "bold");
+
+          const teamTitle = singleTeam.secondTeamName
+            ? `${singleTeam.secondTeamName} (Team ${singleTeam.teamName})`
+            : `Team ${singleTeam.teamName}`;
+
+          const wrappedTitle = doc.splitTextToSize(teamTitle, columnWidth);
+          doc.text(wrappedTitle, centerX, yPos, { align: "center" });
+          
+          // Add checkmark if payment received
+          if (singleTeam.paymentReceived) {
+            const titleWidth = doc.getTextWidth(wrappedTitle[0]);
+            const checkX = centerX + (titleWidth / 2) + 5;
+            const checkY = yPos - 3;
+            
+            // Draw checkmark using lines
+            doc.setLineWidth(1.5);
+            doc.line(checkX, checkY, checkX + 2, checkY + 3);
+            doc.line(checkX + 2, checkY + 3, checkX + 6, checkY - 2);
+            doc.setLineWidth(0.5);
+          }
+
+          let yTeam = yPos + wrappedTitle.length * lineGap + 8;
+
+          // Players centered
+          doc.setFontSize(playerSize);
+          doc.setFont("helvetica", "bold");
+
+          singleTeam.players.forEach((player, idx) => {
+            const numberText = `${idx + 1}. `;
+            const nameText = player.name;
+            
+            // Calculate text width to check if wrapping is needed
+            const fullText = numberText + nameText;
+            const textWidth = doc.getTextWidth(fullText);
+            const maxWidth = columnWidth;
+            
+            if (textWidth <= maxWidth) {
+              // No wrapping needed
+              doc.text(fullText, centerX, yTeam, { align: "center" });
+              yTeam += lineGap;
+            } else {
+              // Need to wrap - split manually and indent continuation
+              const numberWidth = doc.getTextWidth(numberText);
+              const availableWidth = maxWidth - numberWidth;
+              
+              // Split the name into lines
+              const words = nameText.split(' ');
+              let currentLine = '';
+              const lines = [];
+              
+              words.forEach(word => {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const testWidth = doc.getTextWidth(testLine);
+                
+                if (testWidth <= availableWidth && currentLine) {
+                  currentLine = testLine;
+                } else {
+                  if (currentLine) lines.push(currentLine);
+                  currentLine = word;
+                }
+              });
+              if (currentLine) lines.push(currentLine);
+              
+              // Print first line with number
+              doc.text(numberText + lines[0], centerX, yTeam, { align: "center" });
+              yTeam += lineGap;
+              
+              // Print continuation lines with indent (spaces to match number width)
+              for (let i = 1; i < lines.length; i++) {
+                const indent = '    '; // Indent for continuation
+                doc.text(indent + lines[i], centerX, yTeam, { align: "center" });
+                yTeam += lineGap;
+              }
+            }
+          });
+        } else {
+          // Two teams - display side by side with separator
+          const separatorX = pageWidth / 2;
+          doc.line(separatorX, yPos, separatorX, pageHeight - 20);
+
+          const leftStart = 25;
+          const rightStart = separatorX + 15;
+          const columnWidth = separatorX - leftStart - 15;
+
+          // ===== TEAM TITLES =====
+          doc.setFontSize(teamTitleSize);
+          doc.setFont("helvetica", "bold");
+
+          const teamATitle = teamA.secondTeamName
+            ? `${teamA.secondTeamName} (Team ${teamA.teamName})`
+            : `Team ${teamA.teamName}`;
+
+          const teamBTitle = teamB.secondTeamName
+            ? `${teamB.secondTeamName} (Team ${teamB.teamName})`
+            : `Team ${teamB.teamName}`;
+
+          const wrappedATitle = doc.splitTextToSize(teamATitle, columnWidth);
+          doc.text(wrappedATitle, leftStart, yPos);
+          
+          // Add checkmark if payment received for Team A
+          if (teamA.paymentReceived) {
+            const titleWidth = doc.getTextWidth(wrappedATitle[0]);
+            const checkX = leftStart + titleWidth + 3;
+            const checkY = yPos - 3;
+            
+            // Draw checkmark using lines
+            doc.setLineWidth(1.5);
+            doc.line(checkX, checkY, checkX + 2, checkY + 3);
+            doc.line(checkX + 2, checkY + 3, checkX + 6, checkY - 2);
+            doc.setLineWidth(0.5);
+          }
+
+          const wrappedBTitle = doc.splitTextToSize(teamBTitle, columnWidth);
+          doc.text(wrappedBTitle, rightStart, yPos);
+          
+          // Add checkmark if payment received for Team B
+          if (teamB.paymentReceived) {
+            const titleWidth = doc.getTextWidth(wrappedBTitle[0]);
+            const checkX = rightStart + titleWidth + 3;
+            const checkY = yPos - 3;
+            
+            // Draw checkmark using lines
+            doc.setLineWidth(1.5);
+            doc.line(checkX, checkY, checkX + 2, checkY + 3);
+            doc.line(checkX + 2, checkY + 3, checkX + 6, checkY - 2);
+            doc.setLineWidth(0.5);
+          }
+
+          let yA = yPos + wrappedATitle.length * lineGap + 8;
+          let yB = yPos + wrappedBTitle.length * lineGap + 8;
+
+          // ===== PLAYERS =====
+          doc.setFontSize(playerSize);
+          doc.setFont("helvetica", "bold");
+
+          // LEFT TEAM PLAYERS
+          teamA.players.forEach((player, idx) => {
+            const numberText = `${idx + 1}. `;
+            const nameText = player.name;
+            const numberWidth = doc.getTextWidth(numberText);
+            
+            // Calculate if wrapping is needed
+            const fullText = numberText + nameText;
+            const textWidth = doc.getTextWidth(fullText);
+            
+            if (textWidth <= columnWidth) {
+              // No wrapping needed
+              doc.text(fullText, leftStart, yA);
+              yA += lineGap;
+            } else {
+              // Need to wrap - split manually
+              const availableWidth = columnWidth - numberWidth;
+              const words = nameText.split(' ');
+              let currentLine = '';
+              const lines = [];
+              
+              words.forEach(word => {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const testWidth = doc.getTextWidth(testLine);
+                
+                if (testWidth <= availableWidth && currentLine) {
+                  currentLine = testLine;
+                } else {
+                  if (currentLine) lines.push(currentLine);
+                  currentLine = word;
+                }
+              });
+              if (currentLine) lines.push(currentLine);
+              
+              // Print first line with number
+              doc.text(numberText + lines[0], leftStart, yA);
+              yA += lineGap;
+              
+              // Print continuation lines aligned with name start
+              const nameStartX = leftStart + numberWidth;
+              for (let i = 1; i < lines.length; i++) {
+                doc.text(lines[i], nameStartX, yA);
+                yA += lineGap;
+              }
+            }
           });
 
-          yB += nameWrapped.length * lineGap;
-        });
+          // RIGHT TEAM PLAYERS
+          teamB.players.forEach((player, idx) => {
+            const numberText = `${idx + 1}. `;
+            const nameText = player.name;
+            const numberWidth = doc.getTextWidth(numberText);
+            
+            // Calculate if wrapping is needed
+            const fullText = numberText + nameText;
+            const textWidth = doc.getTextWidth(fullText);
+            
+            if (textWidth <= columnWidth) {
+              // No wrapping needed
+              doc.text(fullText, rightStart, yB);
+              yB += lineGap;
+            } else {
+              // Need to wrap - split manually
+              const availableWidth = columnWidth - numberWidth;
+              const words = nameText.split(' ');
+              let currentLine = '';
+              const lines = [];
+              
+              words.forEach(word => {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const testWidth = doc.getTextWidth(testLine);
+                
+                if (testWidth <= availableWidth && currentLine) {
+                  currentLine = testLine;
+                } else {
+                  if (currentLine) lines.push(currentLine);
+                  currentLine = word;
+                }
+              });
+              if (currentLine) lines.push(currentLine);
+              
+              // Print first line with number
+              doc.text(numberText + lines[0], rightStart, yB);
+              yB += lineGap;
+              
+              // Print continuation lines aligned with name start
+              const nameStartX = rightStart + numberWidth;
+              for (let i = 1; i < lines.length; i++) {
+                doc.text(lines[i], nameStartX, yB);
+                yB += lineGap;
+              }
+            }
+          });
+        }
       }
     }
 
-    doc.save('Dangal_4.0_All_Teams.pdf');
+    doc.save("Dangal_4.0_All_Teams.pdf");
   } catch (error) {
     console.error(error);
-    alert('Failed to generate PDF.');
+    setToast({ message: 'Failed to generate PDF', type: 'error' });
   } finally {
     setGeneratingPDF(false);
   }
 };
+
 
 
   if (loading) {
@@ -325,6 +654,7 @@ const Teams = () => {
 
   return (
     <AdminLayout>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <style>
         {`
           @keyframes spin {
@@ -400,6 +730,32 @@ const Teams = () => {
                   <path d="m21 21-4.35-4.35"></path>
                 </svg>
               </div>
+            </div>
+
+            {/* Payment Status Filter */}
+            <div>
+              <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                Payment Status
+              </label>
+              <select
+                value={selectedPaymentStatus}
+                onChange={(e) => setSelectedPaymentStatus(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="all" style={{ background: '#1a1a1a', color: '#fff' }}>All Payments</option>
+                <option value="paid" style={{ background: '#1a1a1a', color: '#fff' }}>Paid</option>
+                <option value="unpaid" style={{ background: '#1a1a1a', color: '#fff' }}>Not Paid</option>
+              </select>
             </div>
 
             {/* Hall Filter with Search */}
@@ -706,23 +1062,30 @@ const Teams = () => {
           </div>
         </div>
 
-        {/* Download PDF Button */}
-        <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Action Buttons Row */}
+        <div style={{ 
+          marginBottom: '2rem', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }}>
           <button
             onClick={generatePDF}
             disabled={generatingPDF || teams.length === 0}
             style={{
-              padding: '1rem 2rem',
+              padding: '0.75rem 1.5rem',
               background: generatingPDF || teams.length === 0 ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 215, 0, 0.2)',
               border: '1px solid rgba(255, 215, 0, 0.4)',
               borderRadius: '0.75rem',
               color: generatingPDF || teams.length === 0 ? '#888' : '#FFD700',
               cursor: generatingPDF || teams.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '1rem',
+              fontSize: '0.95rem',
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
+              gap: '0.5rem',
               transition: 'all 0.3s',
               opacity: generatingPDF || teams.length === 0 ? 0.5 : 1,
             }}
@@ -742,30 +1105,135 @@ const Teams = () => {
             {generatingPDF ? (
               <>
                 <div style={{
-                  width: '20px',
-                  height: '20px',
+                  width: '18px',
+                  height: '18px',
                   border: '3px solid rgba(255, 215, 0, 0.2)',
                   borderTop: '3px solid #FFD700',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
                 }} />
-                Generating PDF...
+                Generating...
               </>
             ) : (
               <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Download All Teams PDF
+                Download PDF
               </>
             )}
           </button>
-          <div style={{ marginTop: '0.5rem', color: '#888', fontSize: '0.85rem' }}>
-            * To be implemented properly
-          </div>
+
+          <button
+            onClick={() => setEditPaymentMode(true)}
+            disabled={editPaymentMode}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: editPaymentMode ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.2)',
+              border: '1px solid rgba(34, 197, 94, 0.4)',
+              borderRadius: '0.75rem',
+              color: '#22c55e',
+              cursor: editPaymentMode ? 'not-allowed' : 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s',
+              opacity: editPaymentMode ? 0.5 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!editPaymentMode) {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!editPaymentMode) {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Edit Payment Status
+          </button>
         </div>
+
+        {/* Payment Status Edit Controls */}
+        {editPaymentMode && (
+          <div style={{
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: '1rem',
+            padding: '1rem',
+            marginBottom: '2rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <div>
+                <div style={{ color: '#22c55e', fontWeight: '600', fontSize: '1rem' }}>
+                  Edit Payment Status Mode
+                </div>
+                <div style={{ color: '#888', fontSize: '0.85rem' }}>
+                  Click on teams to toggle payment status, then save changes
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleCancelPaymentEdit}
+                disabled={savingPaymentStatus}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '0.5rem',
+                  color: '#aaa',
+                  cursor: savingPaymentStatus ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  opacity: savingPaymentStatus ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePaymentChanges}
+                disabled={savingPaymentStatus || Object.keys(paymentStatusChanges).length === 0}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: savingPaymentStatus || Object.keys(paymentStatusChanges).length === 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.2)',
+                  border: '1px solid rgba(34, 197, 94, 0.4)',
+                  borderRadius: '0.5rem',
+                  color: '#22c55e',
+                  cursor: savingPaymentStatus || Object.keys(paymentStatusChanges).length === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: savingPaymentStatus || Object.keys(paymentStatusChanges).length === 0 ? 0.5 : 1
+                }}
+              >
+                {savingPaymentStatus ? 'Saving...' : `Save Changes (${Object.keys(paymentStatusChanges).filter(id => paymentStatusChanges[id]).length})`}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Teams List */}
         <div style={{
@@ -794,12 +1262,17 @@ const Teams = () => {
           ) : (
             <div style={{ padding: '1.5rem' }}>
               <div style={{ display: 'grid', gap: '0.75rem' }}>
-                {filteredTeams.map((team, index) => (
+                {filteredTeams.map((team, index) => {
+                  const currentPaymentStatus = getTeamPaymentStatus(team);
+                  const isChanged = paymentStatusChanges.hasOwnProperty(team._id) && paymentStatusChanges[team._id];
+                  
+                  return (
                   <div
                     key={team._id}
+                    onClick={() => editPaymentMode && handleTogglePaymentStatus(team._id)}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 215, 0, 0.2)',
+                      background: isChanged ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                      border: isChanged ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(255, 215, 0, 0.2)',
                       borderRadius: '0.75rem',
                       padding: '1rem',
                       display: 'flex',
@@ -808,14 +1281,25 @@ const Teams = () => {
                       justifyContent: 'space-between',
                       gap: '1rem',
                       transition: 'all 0.2s',
+                      cursor: editPaymentMode ? 'pointer' : 'default',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                      if (editPaymentMode) {
+                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.15)';
+                        e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.5)';
+                      } else {
+                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
+                      if (isChanged) {
+                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+                      } else {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
+                      }
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
@@ -842,43 +1326,69 @@ const Teams = () => {
                           fontSize: window.innerWidth < 768 ? '0.9rem' : '1rem', 
                           marginBottom: '0.25rem',
                           wordBreak: 'break-word',
-                          lineHeight: '1.4'
+                          lineHeight: '1.4',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap'
                         }}>
-                          {getGameName(team.gameId)} - {team.secondTeamName ? `${team.secondTeamName} (${getHallName(team.hallId)} - Team ${team.teamName})` : `${getHallName(team.hallId)} (Team ${team.teamName})`}
+                          <span>{getGameName(team.gameId)} - {team.secondTeamName ? `${team.secondTeamName} (${getHallName(team.hallId)} - Team ${team.teamName})` : `${getHallName(team.hallId)} (Team ${team.teamName})`}</span>
+                          {currentPaymentStatus && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '0.25rem 0.5rem',
+                              background: 'rgba(34, 197, 94, 0.2)',
+                              border: '1px solid rgba(34, 197, 94, 0.4)',
+                              borderRadius: '0.375rem',
+                              color: '#22c55e',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '0.25rem' }}>
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                              Paid
+                            </span>
+                          )}
                         </div>
                         <div style={{ color: '#888', fontSize: '0.85rem' }}>
                           {team.players.length} players
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => viewTeamDetails(team)}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: 'rgba(255, 215, 0, 0.2)',
-                        border: '1px solid rgba(255, 215, 0, 0.4)',
-                        borderRadius: '0.5rem',
-                        color: '#FFD700',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        transition: 'all 0.2s',
-                        flexShrink: 0,
-                        width: window.innerWidth < 768 ? '100%' : 'auto',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      View Details
-                    </button>
+                    {!editPaymentMode && (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', width: window.innerWidth < 768 ? '100%' : 'auto' }}>
+                      <button
+                        onClick={() => viewTeamDetails(team)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'rgba(255, 215, 0, 0.2)',
+                          border: '1px solid rgba(255, 215, 0, 0.4)',
+                          borderRadius: '0.5rem',
+                          color: '#FFD700',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: '500',
+                          transition: 'all 0.2s',
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 215, 0, 0.3)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -922,16 +1432,48 @@ const Teams = () => {
               background: 'rgba(255, 215, 0, 0.05)',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div>
-                  <h2 style={{ color: '#FFD700', fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                    {selectedTeam.secondTeamName ? selectedTeam.secondTeamName : `${getHallName(selectedTeam.hallId)} (Team ${selectedTeam.teamName})`}
-                  </h2>
-                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
-                    {selectedTeam.secondTeamName ? `${getHallName(selectedTeam.hallId)} - Team ${selectedTeam.teamName} • ${getGameName(selectedTeam.gameId)}` : getGameName(selectedTeam.gameId)}
-                  </p>
+                <div style={{ flex: 1 }}>
+                  {editMode ? (
+                    <div>
+                      <label style={{ display: 'block', color: '#FFD700', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                        Team Name (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.secondTeamName}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, secondTeamName: e.target.value }))}
+                        placeholder="Leave empty to use hall name"
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          background: 'rgba(0, 0, 0, 0.3)',
+                          border: '1px solid rgba(255, 215, 0, 0.3)',
+                          borderRadius: '0.5rem',
+                          color: '#fff',
+                          fontSize: '1rem',
+                          marginBottom: '0.5rem'
+                        }}
+                      />
+                      <p style={{ color: '#888', fontSize: '0.85rem' }}>
+                        {getHallName(selectedTeam.hallId)} - Team {selectedTeam.teamName} • {getGameName(selectedTeam.gameId)}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <h2 style={{ color: '#FFD700', fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                        {selectedTeam.secondTeamName || `${getHallName(selectedTeam.hallId)} (Team ${selectedTeam.teamName})`}
+                      </h2>
+                      <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                        {selectedTeam.secondTeamName ? `${getHallName(selectedTeam.hallId)} - Team ${selectedTeam.teamName} • ${getGameName(selectedTeam.gameId)}` : getGameName(selectedTeam.gameId)}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <button
-                  onClick={() => setShowTeamModal(false)}
+                  onClick={() => {
+                    setShowTeamModal(false);
+                    setEditMode(false);
+                  }}
                   style={{
                     background: 'rgba(239, 68, 68, 0.2)',
                     border: '1px solid rgba(239, 68, 68, 0.4)',
@@ -942,6 +1484,7 @@ const Teams = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    marginLeft: '1rem'
                   }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -956,17 +1499,43 @@ const Teams = () => {
             <div style={{ padding: '2rem' }}>
               {/* Players List */}
               <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                  Players ({selectedTeam.players.length})
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Players ({editMode ? editFormData.players.length : selectedTeam.players.length})
+                  </h3>
+                  {editMode && (
+                    <button
+                      onClick={handleAddPlayer}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid rgba(34, 197, 94, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#22c55e',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      Add Player
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  {selectedTeam.players.map((player, idx) => (
+                  {(editMode ? editFormData.players : selectedTeam.players).map((player, idx) => (
                     <div
                       key={idx}
                       style={{
@@ -990,17 +1559,125 @@ const Teams = () => {
                         justifyContent: 'center',
                         color: '#FFD700',
                         fontWeight: 'bold',
+                        flexShrink: 0
                       }}>
                         {idx + 1}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ color: '#fff', fontWeight: '500' }}>{player.name}</div>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={player.name}
+                            onChange={(e) => handlePlayerNameChange(idx, e.target.value)}
+                            placeholder="Player name"
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              border: '1px solid rgba(255, 215, 0, 0.3)',
+                              borderRadius: '0.5rem',
+                              color: '#fff',
+                              fontSize: '1rem'
+                            }}
+                          />
+                        ) : (
+                          <div style={{ color: '#fff', fontWeight: '500' }}>{player.name}</div>
+                        )}
                       </div>
+                      {editMode && (
+                        <button
+                          onClick={() => handleRemovePlayer(idx)}
+                          style={{
+                            padding: '0.5rem',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            borderRadius: '0.5rem',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                {editMode ? (
+                  <>
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={savingTeam}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '0.5rem',
+                        color: '#aaa',
+                        cursor: savingTeam ? 'not-allowed' : 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        opacity: savingTeam ? 0.5 : 1
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveTeam}
+                      disabled={savingTeam}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: savingTeam ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 215, 0, 0.2)',
+                        border: '1px solid rgba(255, 215, 0, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#FFD700',
+                        cursor: savingTeam ? 'not-allowed' : 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        opacity: savingTeam ? 0.5 : 1
+                      }}
+                    >
+                      {savingTeam ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleEditClick}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: 'rgba(255, 215, 0, 0.2)',
+                      border: '1px solid rgba(255, 215, 0, 0.4)',
+                      borderRadius: '0.5rem',
+                      color: '#FFD700',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit Team
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

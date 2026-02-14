@@ -121,6 +121,71 @@ router.get('/all', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Update a team (admin only)
+router.put('/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { secondTeamName, players } = req.body;
+    
+    const team = await Team.findById(req.params.id).populate('gameId');
+    
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Validate player count
+    const game = team.gameId;
+    if (players.length < game.minPlayersPerTeam || players.length > game.maxPlayersPerTeam) {
+      return res.status(400).json({ 
+        message: `Team must have between ${game.minPlayersPerTeam} and ${game.maxPlayersPerTeam} players` 
+      });
+    }
+
+    // Validate all player names are filled
+    if (players.some(p => !p.name || !p.name.trim())) {
+      return res.status(400).json({ message: 'All player names must be filled' });
+    }
+
+    // Update team
+    team.secondTeamName = secondTeamName || '';
+    team.players = players;
+    
+    await team.save();
+    
+    // Populate and return updated team
+    const updatedTeam = await Team.findById(team._id)
+      .populate('hallId', 'name type')
+      .populate('gameId', 'name')
+      .populate('registeredBy', 'name email');
+    
+    res.json(updatedTeam);
+  } catch (error) {
+    console.error('Update team error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Toggle payment status (admin only)
+router.patch('/:id/payment-status', authenticateAdmin, async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id)
+      .populate('hallId', 'name type')
+      .populate('gameId', 'name')
+      .populate('registeredBy', 'name email');
+    
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    team.paymentReceived = !team.paymentReceived;
+    await team.save();
+    
+    res.json(team);
+  } catch (error) {
+    console.error('Toggle payment status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Delete a team (admin only)
 router.delete('/:id', authenticateAdmin, async (req, res) => {
   try {

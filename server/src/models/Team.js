@@ -32,6 +32,10 @@ const teamSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  paymentReceived: {
+    type: Boolean,
+    default: false
+  },
   registeredBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
