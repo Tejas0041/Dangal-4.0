@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 import Loader from '../components/Loader';
 import axios from 'axios';
 
@@ -28,6 +29,10 @@ const Registrations = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [selectedTeams, setSelectedTeams] = useState([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState(false);
+  const [newPaymentMethod, setNewPaymentMethod] = useState('online');
+  const [updatingPaymentMethod, setUpdatingPaymentMethod] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -128,6 +133,8 @@ const Registrations = () => {
   const viewTeamDetails = (team) => {
     setSelectedTeam(team);
     setShowTeamModal(true);
+    setEditingPaymentMethod(false);
+    setNewPaymentMethod(team.paymentMethod || 'online');
   };
 
   const handleDeleteClick = (team) => {
@@ -204,6 +211,32 @@ const Registrations = () => {
     }
   };
 
+  const handleUpdatePaymentMethod = async () => {
+    if (!selectedTeam) return;
+    
+    try {
+      setUpdatingPaymentMethod(true);
+      
+      const response = await axios.patch(
+        `${API_URL}/api/teams/${selectedTeam._id}/payment-method`,
+        { paymentMethod: newPaymentMethod },
+        { withCredentials: true }
+      );
+      
+      // Update local state
+      setTeams(teams.map(t => t._id === selectedTeam._id ? response.data : t));
+      setSelectedTeam(response.data);
+      setEditingPaymentMethod(false);
+      
+      setToast({ message: 'Payment method updated successfully!', type: 'success' });
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      setToast({ message: error.response?.data?.message || 'Failed to update payment method', type: 'error' });
+    } finally {
+      setUpdatingPaymentMethod(false);
+    }
+  };
+
   const highlightText = (text, query) => {
     if (!query || !text) return text;
     
@@ -267,6 +300,7 @@ const Registrations = () => {
 
   return (
     <AdminLayout>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div>
         {/* Header Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? '0.75rem' : '1rem', marginBottom: '2rem' }}>
@@ -975,7 +1009,23 @@ const Registrations = () => {
                           {highlightText(getGameName(team.gameId), searchQuery)}
                         </td>
                         <td style={{ padding: isMobile ? '0.75rem' : '1rem', color: '#ccc', fontSize: isMobile ? '0.85rem' : '1rem', whiteSpace: 'nowrap' }}>
-                          {team.players.length} players
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>{team.players.length} players</span>
+                            {team.paymentMethod === 'cash' && (
+                              <span style={{
+                                padding: '0.25rem 0.5rem',
+                                background: 'rgba(34, 197, 94, 0.2)',
+                                border: '1px solid rgba(34, 197, 94, 0.4)',
+                                borderRadius: '0.375rem',
+                                color: '#22c55e',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                CASH
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: isMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'nowrap' }}>
@@ -1158,6 +1208,170 @@ const Registrations = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Payment Method */}
+              <div style={{ marginBottom: isMobile ? '1.5rem' : '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ color: '#FFD700', fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                      <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    Payment Method
+                  </h3>
+                  {!editingPaymentMethod && (
+                    <button
+                      onClick={() => setEditingPaymentMethod(true)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: 'rgba(255, 215, 0, 0.2)',
+                        border: '1px solid rgba(255, 215, 0, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#FFD700',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {editingPaymentMethod ? (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '0.75rem',
+                    padding: isMobile ? '1rem' : '1.5rem',
+                  }}>
+                    <label style={{ display: 'block', color: '#888', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                      Select Payment Method
+                    </label>
+                    <select
+                      value={newPaymentMethod}
+                      onChange={(e) => setNewPaymentMethod(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(255, 215, 0, 0.3)',
+                        borderRadius: '0.5rem',
+                        color: '#fff',
+                        fontSize: '1rem',
+                        marginBottom: '1rem'
+                      }}
+                    >
+                      <option value="online">Online Payment</option>
+                      <option value="cash">Cash Payment</option>
+                    </select>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button
+                        onClick={() => {
+                          setEditingPaymentMethod(false);
+                          setNewPaymentMethod(selectedTeam.paymentMethod || 'online');
+                        }}
+                        disabled={updatingPaymentMethod}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '0.5rem',
+                          color: '#aaa',
+                          cursor: updatingPaymentMethod ? 'not-allowed' : 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          opacity: updatingPaymentMethod ? 0.5 : 1
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUpdatePaymentMethod}
+                        disabled={updatingPaymentMethod}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          background: updatingPaymentMethod ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 215, 0, 0.2)',
+                          border: '1px solid rgba(255, 215, 0, 0.4)',
+                          borderRadius: '0.5rem',
+                          color: '#FFD700',
+                          cursor: updatingPaymentMethod ? 'not-allowed' : 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          opacity: updatingPaymentMethod ? 0.5 : 1
+                        }}
+                      >
+                        {updatingPaymentMethod ? 'Updating...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '0.75rem',
+                    padding: isMobile ? '0.75rem' : '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem'
+                  }}>
+                    {(selectedTeam.paymentMethod === 'cash') ? (
+                      <>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: 'rgba(34, 197, 94, 0.2)',
+                          border: '2px solid rgba(34, 197, 94, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+                            <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div style={{ color: '#22c55e', fontWeight: '600', fontSize: '1rem' }}>Cash Payment</div>
+                          <div style={{ color: '#888', fontSize: '0.85rem' }}>Payment to be collected in cash</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: 'rgba(59, 130, 246, 0.2)',
+                          border: '2px solid rgba(59, 130, 246, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
+                            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                            <line x1="2" y1="10" x2="22" y2="10"></line>
+                          </svg>
+                        </div>
+                        <div>
+                          <div style={{ color: '#3b82f6', fontWeight: '600', fontSize: '1rem' }}>Online Payment</div>
+                          <div style={{ color: '#888', fontSize: '0.85rem' }}>Paid via UPI/QR Code</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Payment Screenshot */}

@@ -51,7 +51,7 @@ router.get('/status/:hallId', authenticate, async (req, res) => {
 // Create a new team
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { hallId, gameId, teamName, secondTeamName, players, paymentScreenshot } = req.body;
+    const { hallId, gameId, teamName, secondTeamName, players, paymentScreenshot, paymentMethod } = req.body;
 
     // Validate game exists
     const game = await Game.findById(gameId);
@@ -83,6 +83,17 @@ router.post('/', authenticate, async (req, res) => {
       });
     }
 
+    // Validate payment method
+    const method = paymentMethod || 'online';
+    if (!['online', 'cash'].includes(method)) {
+      return res.status(400).json({ message: 'Invalid payment method' });
+    }
+
+    // If online payment, screenshot is required
+    if (method === 'online' && !paymentScreenshot) {
+      return res.status(400).json({ message: 'Payment screenshot is required for online payment' });
+    }
+
     // Create team
     const team = new Team({
       hallId,
@@ -90,7 +101,8 @@ router.post('/', authenticate, async (req, res) => {
       teamName,
       secondTeamName: secondTeamName || '',
       players,
-      paymentScreenshot,
+      paymentScreenshot: method === 'online' ? paymentScreenshot : null,
+      paymentMethod: method,
       registeredBy: req.user._id
     });
 
@@ -117,6 +129,37 @@ router.get('/all', authenticateAdmin, async (req, res) => {
     res.json(teams);
   } catch (error) {
     console.error('Get all teams error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update team payment method (admin only)
+router.patch('/:id/payment-method', authenticateAdmin, async (req, res) => {
+  try {
+    const { paymentMethod } = req.body;
+    
+    if (!['online', 'cash'].includes(paymentMethod)) {
+      return res.status(400).json({ message: 'Invalid payment method' });
+    }
+    
+    const team = await Team.findById(req.params.id);
+    
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    team.paymentMethod = paymentMethod;
+    await team.save();
+    
+    // Populate and return updated team
+    const updatedTeam = await Team.findById(team._id)
+      .populate('hallId', 'name type')
+      .populate('gameId', 'name')
+      .populate('registeredBy', 'name email');
+    
+    res.json(updatedTeam);
+  } catch (error) {
+    console.error('Update payment method error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

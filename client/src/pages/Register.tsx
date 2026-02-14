@@ -49,6 +49,7 @@ export default function Register() {
   const [secondTeamName, setSecondTeamName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [paymentScreenshot, setPaymentScreenshot] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>('online');
   const [uploadingPayment, setUploadingPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -148,6 +149,7 @@ export default function Register() {
       setTeamName('');
       setSecondTeamName('');
       setPaymentScreenshot('');
+      setPaymentMethod('online');
     }
   }, [selectedGame]);
 
@@ -278,7 +280,7 @@ export default function Register() {
       return;
     }
 
-    if (!paymentScreenshot) {
+    if (!paymentScreenshot && paymentMethod === 'online') {
       toast({
         title: "Payment Required",
         description: "Please upload payment screenshot",
@@ -296,7 +298,8 @@ export default function Register() {
         teamName,
         secondTeamName: secondTeamName || undefined,
         players: filledPlayers.map(name => ({ name })),
-        paymentScreenshot
+        paymentScreenshot: paymentMethod === 'online' ? paymentScreenshot : undefined,
+        paymentMethod
       });
 
       toast({
@@ -314,6 +317,7 @@ export default function Register() {
       setSecondTeamName('');
       setPlayers([]);
       setPaymentScreenshot('');
+      setPaymentMethod('online');
       
       // Scroll to top of page
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -794,7 +798,7 @@ export default function Register() {
                             <option value="" className="bg-black text-gray-400 py-3">Select Team A/B</option>
                             {getAvailableTeamNames(selectedGame._id).map((name) => (
                               <option key={name} value={name} className="bg-black text-primary font-bold py-3">
-                                Team {name}
+                                {hall?.name} (Team {name})
                               </option>
                             ))}
                           </select>
@@ -875,7 +879,23 @@ export default function Register() {
                         <div className="border-t border-white/10 pt-6 mt-6">
                           <h4 className="text-xl font-bold text-primary mb-6 uppercase tracking-wider">Payment Details</h4>
                           
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          {/* Payment Method Dropdown */}
+                          <div className="mb-6">
+                            <label className="block text-sm font-bold uppercase tracking-wider text-primary mb-3">
+                              Payment Method *
+                            </label>
+                            <select
+                              value={paymentMethod}
+                              onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'cash')}
+                              className="w-full px-4 py-3 bg-black/50 border border-primary/30 rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
+                            >
+                              <option value="online">Scan QR and Upload Screenshot</option>
+                              <option value="cash">Cash Payment</option>
+                            </select>
+                          </div>
+
+                          {paymentMethod === 'online' ? (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* QR Code Section */}
                             <div className="flex flex-col">
                               <label className="block text-sm font-bold uppercase tracking-wider text-primary mb-3">
@@ -983,12 +1003,24 @@ export default function Register() {
                               )}
                             </div>
                           </div>
+                          ) : (
+                            <div className="bg-black/50 border border-primary/30 rounded-xl p-8 text-center">
+                              <div className="inline-block p-4 bg-primary/10 rounded-full mb-4">
+                                <svg className="w-16 h-16 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              </div>
+                              <h5 className="text-xl font-bold text-primary mb-3">Cash Payment Selected</h5>
+                              <p className="text-gray-300 mb-2">You have selected cash payment method.</p>
+                              <p className="text-gray-400 text-sm">Please pay ₹{selectedGame.registrationAmount} in cash to the event organizers.</p>
+                            </div>
+                          )}
                         </div>
 
                         {/* Submit Button */}
                         <motion.button
                           type="submit"
-                          disabled={isSubmitting || uploadingPayment || !teamName || !paymentScreenshot}
+                          disabled={isSubmitting || uploadingPayment || !teamName || (paymentMethod === 'online' && !paymentScreenshot)}
                           whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                           whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
                           className="w-full mt-8 py-4 bg-primary text-black font-bold uppercase tracking-widest rounded-lg hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,215,0,0.3)] hover:shadow-[0_0_40px_rgba(255,215,0,0.5)]"

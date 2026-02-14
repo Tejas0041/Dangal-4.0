@@ -30,7 +30,12 @@ const teamSchema = new mongoose.Schema({
   }],
   paymentScreenshot: {
     type: String,
-    required: true
+    required: false
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['online', 'cash'],
+    default: 'cash',
   },
   paymentReceived: {
     type: Boolean,
