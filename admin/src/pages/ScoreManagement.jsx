@@ -96,8 +96,8 @@ const ScoreManagement = () => {
 
     // Handle Kabaddi scoring
     if (scoreData.teamA && scoreData.teamB) {
-      totalA = scoreData.teamA.raidPoints + scoreData.teamA.bonusPoints + scoreData.teamA.allOutPoints + scoreData.teamA.extraPoints;
-      totalB = scoreData.teamB.raidPoints + scoreData.teamB.bonusPoints + scoreData.teamB.allOutPoints + scoreData.teamB.extraPoints;
+      totalA = scoreData.teamA.raidPoints + scoreData.teamA.tacklePoints + scoreData.teamA.bonusPoints + scoreData.teamA.allOutPoints + scoreData.teamA.extraPoints;
+      totalB = scoreData.teamB.raidPoints + scoreData.teamB.tacklePoints + scoreData.teamB.bonusPoints + scoreData.teamB.allOutPoints + scoreData.teamB.extraPoints;
     } 
     // Handle Table Tennis scoring
     else if (scoreData.gamesWonA !== undefined && scoreData.gamesWonB !== undefined) {
@@ -1367,12 +1367,14 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
   const [scores, setScores] = useState({
     teamA: {
       raidPoints: 0,
+      tacklePoints: 0,
       bonusPoints: 0,
       allOutPoints: 0,
       extraPoints: 0,
     },
     teamB: {
       raidPoints: 0,
+      tacklePoints: 0,
       bonusPoints: 0,
       allOutPoints: 0,
       extraPoints: 0,
@@ -1425,12 +1427,14 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
         setScores({
           teamA: {
             raidPoints: match.result.teamAScore?.raidPoints || 0,
+            tacklePoints: match.result.teamAScore?.tacklePoints || 0,
             bonusPoints: match.result.teamAScore?.bonusPoints || 0,
             allOutPoints: match.result.teamAScore?.allOutPoints || 0,
             extraPoints: match.result.teamAScore?.extraPoints || 0,
           },
           teamB: {
             raidPoints: match.result.teamBScore?.raidPoints || 0,
+            tacklePoints: match.result.teamBScore?.tacklePoints || 0,
             bonusPoints: match.result.teamBScore?.bonusPoints || 0,
             allOutPoints: match.result.teamBScore?.allOutPoints || 0,
             extraPoints: match.result.teamBScore?.extraPoints || 0,
@@ -1442,7 +1446,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
   }, [match._id, lastMatchId, match.result]);
 
   const calculateTotal = (teamScores) => {
-    return teamScores.raidPoints + teamScores.bonusPoints + teamScores.allOutPoints + teamScores.extraPoints;
+    return teamScores.raidPoints + teamScores.tacklePoints + teamScores.bonusPoints + teamScores.allOutPoints + teamScores.extraPoints;
   };
 
   const handleIncrement = (team, field) => {
@@ -1613,6 +1617,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
 
   const scoreCategories = [
     { label: 'Raid Points', field: 'raidPoints' },
+    { label: 'Tackle Points', field: 'tacklePoints' },
     { label: 'Bonus Points', field: 'bonusPoints' },
     { label: 'All Out Points', field: 'allOutPoints' },
     { label: 'Extra Points', field: 'extraPoints' }

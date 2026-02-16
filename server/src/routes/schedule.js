@@ -338,21 +338,25 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
     // Handle Kabaddi scoring
     if (teamAScore && teamBScore) {
       const scoreA = (teamAScore?.raidPoints || 0) + 
+                     (teamAScore?.tacklePoints || 0) + 
                      (teamAScore?.bonusPoints || 0) + 
                      (teamAScore?.allOutPoints || 0) + 
                      (teamAScore?.extraPoints || 0);
       
       const scoreB = (teamBScore?.raidPoints || 0) + 
+                     (teamBScore?.tacklePoints || 0) + 
                      (teamBScore?.bonusPoints || 0) + 
                      (teamBScore?.allOutPoints || 0) + 
                      (teamBScore?.extraPoints || 0);
 
       // Calculate increments and determine which score types changed
       const prevScoreA = (currentMatch.result?.teamAScore?.raidPoints || 0) +
+                         (currentMatch.result?.teamAScore?.tacklePoints || 0) +
                          (currentMatch.result?.teamAScore?.bonusPoints || 0) +
                          (currentMatch.result?.teamAScore?.allOutPoints || 0) +
                          (currentMatch.result?.teamAScore?.extraPoints || 0);
       const prevScoreB = (currentMatch.result?.teamBScore?.raidPoints || 0) +
+                         (currentMatch.result?.teamBScore?.tacklePoints || 0) +
                          (currentMatch.result?.teamBScore?.bonusPoints || 0) +
                          (currentMatch.result?.teamBScore?.allOutPoints || 0) +
                          (currentMatch.result?.teamBScore?.extraPoints || 0);
@@ -365,6 +369,10 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
         if ((teamAScore.raidPoints || 0) > (currentMatch.result?.teamAScore?.raidPoints || 0)) {
           const diff = (teamAScore.raidPoints || 0) - (currentMatch.result?.teamAScore?.raidPoints || 0);
           scoreTypes.teamA.push({ type: 'Raid Points', value: diff });
+        }
+        if ((teamAScore.tacklePoints || 0) > (currentMatch.result?.teamAScore?.tacklePoints || 0)) {
+          const diff = (teamAScore.tacklePoints || 0) - (currentMatch.result?.teamAScore?.tacklePoints || 0);
+          scoreTypes.teamA.push({ type: 'Tackle Points', value: diff });
         }
         if ((teamAScore.bonusPoints || 0) > (currentMatch.result?.teamAScore?.bonusPoints || 0)) {
           const diff = (teamAScore.bonusPoints || 0) - (currentMatch.result?.teamAScore?.bonusPoints || 0);
@@ -385,6 +393,10 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
         if ((teamBScore.raidPoints || 0) > (currentMatch.result?.teamBScore?.raidPoints || 0)) {
           const diff = (teamBScore.raidPoints || 0) - (currentMatch.result?.teamBScore?.raidPoints || 0);
           scoreTypes.teamB.push({ type: 'Raid Points', value: diff });
+        }
+        if ((teamBScore.tacklePoints || 0) > (currentMatch.result?.teamBScore?.tacklePoints || 0)) {
+          const diff = (teamBScore.tacklePoints || 0) - (currentMatch.result?.teamBScore?.tacklePoints || 0);
+          scoreTypes.teamB.push({ type: 'Tackle Points', value: diff });
         }
         if ((teamBScore.bonusPoints || 0) > (currentMatch.result?.teamBScore?.bonusPoints || 0)) {
           const diff = (teamBScore.bonusPoints || 0) - (currentMatch.result?.teamBScore?.bonusPoints || 0);

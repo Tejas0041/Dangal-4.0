@@ -52,12 +52,14 @@ const scheduleSchema = new mongoose.Schema({
     scoreB: Number,
     teamAScore: {
       raidPoints: { type: Number, default: 0 },
+      tacklePoints: { type: Number, default: 0 },
       bonusPoints: { type: Number, default: 0 },
       allOutPoints: { type: Number, default: 0 },
       extraPoints: { type: Number, default: 0 }
     },
     teamBScore: {
       raidPoints: { type: Number, default: 0 },
+      tacklePoints: { type: Number, default: 0 },
       bonusPoints: { type: Number, default: 0 },
       allOutPoints: { type: Number, default: 0 },
       extraPoints: { type: Number, default: 0 }
@@ -77,7 +79,7 @@ const scheduleSchema = new mongoose.Schema({
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Team'
         }
-      }],
+       }],
       gamesWonA: { type: Number, default: 0 },
       gamesWonB: { type: Number, default: 0 }
     }

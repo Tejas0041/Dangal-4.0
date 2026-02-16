@@ -371,8 +371,9 @@ export default function Scores() {
     if (gameName === 'KABADDI') {
       const teamScore = team === 'A' ? match.result.teamAScore : match.result.teamBScore;
       if (!teamScore) return 0;
-      return (teamScore.raidPoints || 0) + (teamScore.bonusPoints || 0) + 
-             (teamScore.allOutPoints || 0) + (teamScore.extraPoints || 0);
+      return (teamScore.raidPoints || 0) + (teamScore.tacklePoints || 0) + 
+             (teamScore.bonusPoints || 0) + (teamScore.allOutPoints || 0) + 
+             (teamScore.extraPoints || 0);
     }
     
     if (gameName === 'TABLE TENNIS') {
