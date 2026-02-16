@@ -27,8 +27,7 @@ const ScheduleManagement = () => {
     time: null,
     venue: '',
     status: 'Scheduled',
-    matchNumber: null,
-    matchType: ''
+    matchNumber: null
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -172,8 +171,7 @@ const ScheduleManagement = () => {
       time: match.time ? dayjs(match.time, 'HH:mm') : null,
       venue: selectedGame?.venue || match.venue,
       status: match.status,
-      matchNumber: match.matchNumber,
-      matchType: match.matchType || ''
+      matchNumber: match.matchNumber
     });
     // Set the team names for display
     setTeamASearch(getTeamFullName(match.teamA));
@@ -191,8 +189,7 @@ const ScheduleManagement = () => {
       time: null,
       venue: '',
       status: 'Scheduled',
-      matchNumber: null,
-      matchType: ''
+      matchNumber: null
     });
     setTeamASearch('');
     setTeamBSearch('');
@@ -1170,7 +1167,6 @@ const ScheduleManagement = () => {
                     </select>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   {/* Round */}
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
@@ -1196,36 +1192,6 @@ const ScheduleManagement = () => {
                       <option value="Semi Final" style={{ background: '#1a1a1a', color: '#fff' }}>Semi Final</option>
                       <option value="Final" style={{ background: '#1a1a1a', color: '#fff' }}>Final</option>
                     </select>
-                  </div>
-
-                  {/* Match Type (for Table Tennis) */}
-                  {formData.game && games.find(g => g._id === formData.game)?.name === 'Table Tennis' && (
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.9rem', fontWeight: '500' }}>
-                        Match Type *
-                      </label>
-                      <select
-                        value={formData.matchType}
-                        onChange={(e) => setFormData({ ...formData, matchType: e.target.value })}
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem',
-                          background: '#1a1a1a',
-                          border: '1px solid rgba(255, 215, 0, 0.5)',
-                          borderRadius: '0.75rem',
-                          color: '#fff',
-                          fontSize: '0.95rem',
-                          outline: 'none',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="" style={{ background: '#1a1a1a', color: '#888' }}>Select Match Type</option>
-                        <option value="Singles" style={{ background: '#1a1a1a', color: '#fff' }}>Singles</option>
-                        <option value="Doubles" style={{ background: '#1a1a1a', color: '#fff' }}>Doubles</option>
-                      </select>
-                    </div>
-                  )}
                   </div>
 
                   {/* Team 1 - Searchable Dropdown */}

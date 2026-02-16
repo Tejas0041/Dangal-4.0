@@ -228,13 +228,13 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
 
       // For Table Tennis, check sets won
       if (currentMatch.game.name.toUpperCase() === 'TABLE TENNIS' && currentMatch.result?.tableTennis) {
-        const setsWonA = currentMatch.result.tableTennis.setsWonA || 0;
-        const setsWonB = currentMatch.result.tableTennis.setsWonB || 0;
+        const gamesWonA = currentMatch.result.tableTennis.gamesWonA || 0;
+        const gamesWonB = currentMatch.result.tableTennis.gamesWonB || 0;
         
-        // Determine winner based on sets won
-        if (setsWonA > setsWonB) {
+        // Determine winner based on games won
+        if (gamesWonA > gamesWonB) {
           autoWinner = currentMatch.teamA._id || currentMatch.teamA;
-        } else if (setsWonB > setsWonA) {
+        } else if (gamesWonB > gamesWonA) {
           autoWinner = currentMatch.teamB._id || currentMatch.teamB;
         }
       }
@@ -332,6 +332,7 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
     let pointIncrements = { teamA: 0, teamB: 0 }; // Track point increments in current set
     let scoreTypes = { teamA: [], teamB: [] }; // Track which score types changed for Kabaddi
     let setWon = null; // Track if a set was won
+    let roundWonData = null; // Track if a round was won (non-league only)
     let matchWon = null; // Track if match was won
 
     // Handle Kabaddi scoring
@@ -409,62 +410,151 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
 
     // Handle Table Tennis scoring
     if (tableTennis) {
-      // Check if a set was just won by comparing sets won
-      const prevSetsWonA = currentMatch.result?.tableTennis?.setsWonA || 0;
-      const prevSetsWonB = currentMatch.result?.tableTennis?.setsWonB || 0;
-      const setsWonIncrementA = tableTennis.setsWonA - prevSetsWonA;
-      const setsWonIncrementB = tableTennis.setsWonB - prevSetsWonB;
+      console.log('=== Table Tennis Scoring Update ===');
+      console.log('Current games won - A:', currentMatch.result?.tableTennis?.gamesWonA || 0, 'B:', currentMatch.result?.tableTennis?.gamesWonB || 0);
+      console.log('New games won - A:', tableTennis.gamesWonA, 'B:', tableTennis.gamesWonB);
+      
+      const isLeague = currentMatch.round === 'League Stage';
+      
+      // Check if a game was just won by comparing games won
+      const prevGamesWonA = currentMatch.result?.tableTennis?.gamesWonA || 0;
+      const prevGamesWonB = currentMatch.result?.tableTennis?.gamesWonB || 0;
+      const gamesWonIncrementA = tableTennis.gamesWonA - prevGamesWonA;
+      const gamesWonIncrementB = tableTennis.gamesWonB - prevGamesWonB;
 
-      // Find which set was just won by checking for new winners
-      if (setsWonIncrementA > 0 || setsWonIncrementB > 0) {
-        const prevSets = currentMatch.result?.tableTennis?.sets || [];
-        // Find the set that just got a winner
-        for (let i = 0; i < tableTennis.sets.length; i++) {
-          const currentSet = tableTennis.sets[i];
-          const prevSet = prevSets[i];
+      console.log('Games won increment - A:', gamesWonIncrementA, 'B:', gamesWonIncrementB);
+
+      let setWonData = null; // For individual set wins
+      let roundWonData = null; // For round wins (non-league only)
+
+      // Find which game was just won by checking for new winners
+      if (gamesWonIncrementA > 0 || gamesWonIncrementB > 0) {
+        console.log('Game was won! Checking which one...');
+        const prevGames = currentMatch.result?.tableTennis?.games || [];
+        // Find the game that just got a winner
+        for (let i = 0; i < tableTennis.games.length; i++) {
+          const currentGame = tableTennis.games[i];
+          const prevGame = prevGames[i];
           
-          // If this set has a winner now but didn't before, this is the set that was won
-          if (currentSet.winner && (!prevSet || !prevSet.winner)) {
-            setWon = { 
-              team: currentSet.winner === currentMatch.teamA._id.toString() ? 'A' : 'B', 
-              setNumber: i + 1  // Set number is 1-indexed (1, 2, 3)
+          console.log(`Checking game ${i + 1}:`, {
+            currentWinner: currentGame.winner,
+            prevWinner: prevGame?.winner,
+            hasWinner: !!currentGame.winner,
+            hadWinner: !!(prevGame?.winner)
+          });
+          
+          // If this game has a winner now but didn't before, this is the game that was won
+          if (currentGame.winner && (!prevGame || !prevGame.winner)) {
+            const winningTeam = currentGame.winner === currentMatch.teamA._id.toString() ? 'A' : 'B';
+            setWonData = { 
+              team: winningTeam, 
+              setNumber: i + 1,  // Game number is 1-indexed
+              gameType: currentGame.type  // Single or Double
             };
+            console.log('Found the won game!', setWonData);
+            
+            // For non-league, check if this completes a round (someone won 2 out of 3 sets)
+            if (!isLeague) {
+              const roundNum = Math.floor(i / 3) + 1;
+              const roundStartIndex = (roundNum - 1) * 3;
+              const roundEndIndex = Math.min(roundNum * 3, tableTennis.games.length);
+              
+              // Count wins in this round
+              let roundWinsA = 0;
+              let roundWinsB = 0;
+              for (let j = roundStartIndex; j < roundEndIndex; j++) {
+                if (tableTennis.games[j].winner === currentMatch.teamA._id.toString()) roundWinsA++;
+                if (tableTennis.games[j].winner === currentMatch.teamB._id.toString()) roundWinsB++;
+              }
+              
+              console.log(`Round ${roundNum} wins - A: ${roundWinsA}, B: ${roundWinsB}`);
+              
+              // Check if someone won the round (2 out of 3)
+              if (roundWinsA >= 2 || roundWinsB >= 2) {
+                roundWonData = {
+                  team: roundWinsA >= 2 ? 'A' : 'B',
+                  roundNumber: roundNum
+                };
+                console.log('Round won!', roundWonData);
+              }
+            }
+            
             break;
           }
         }
       }
 
-      // Calculate point increments in the current set
-      // Find the active set (first set without a winner, or last set if all have winners)
-      if (tableTennis.sets && tableTennis.sets.length > 0) {
-        let currentSetIndex = tableTennis.sets.findIndex(set => !set.winner);
+      // Calculate point increments by finding which game actually changed
+      if (tableTennis.games && tableTennis.games.length > 0) {
+        const prevGames = currentMatch.result?.tableTennis?.games || [];
         
-        // If all sets have winners, use the last set (for undo scenarios)
-        if (currentSetIndex === -1) {
-          currentSetIndex = tableTennis.sets.length - 1;
+        // Find which game had a score change
+        for (let i = 0; i < tableTennis.games.length; i++) {
+          const currentGame = tableTennis.games[i];
+          const prevGame = prevGames[i] || { teamAScore: 0, teamBScore: 0 };
+          
+          const scoreChangeA = currentGame.teamAScore - prevGame.teamAScore;
+          const scoreChangeB = currentGame.teamBScore - prevGame.teamBScore;
+          
+          // If this game had a score change, use it for point increments
+          if (scoreChangeA !== 0 || scoreChangeB !== 0) {
+            pointIncrements.teamA = scoreChangeA;
+            pointIncrements.teamB = scoreChangeB;
+            break; // Only track the first game with changes
+          }
         }
-        
-        const currentSet = tableTennis.sets[currentSetIndex];
-        const prevSets = currentMatch.result?.tableTennis?.sets || [];
-        const prevSet = prevSets[currentSetIndex] || { teamAScore: 0, teamBScore: 0 };
-
-        pointIncrements.teamA = currentSet.teamAScore - prevSet.teamAScore;
-        pointIncrements.teamB = currentSet.teamBScore - prevSet.teamBScore;
       }
 
-      // Check if match is won (League Stage: 1 set, Semi/Final: 2 out of 3 sets)
-      const maxSets = currentMatch.round === 'League Stage' ? 1 : 3;
-      const setsToWin = currentMatch.round === 'League Stage' ? 1 : 2;
-      
-      if (tableTennis.setsWonA >= setsToWin) {
-        matchWon = currentMatch.teamA._id.toString();
-      } else if (tableTennis.setsWonB >= setsToWin) {
-        matchWon = currentMatch.teamB._id.toString();
+      // Check if match is won
+      if (isLeague) {
+        // League: Win 3 out of 5 games
+        const gamesToWin = 3;
+        if (tableTennis.gamesWonA >= gamesToWin) {
+          matchWon = currentMatch.teamA._id.toString();
+        } else if (tableTennis.gamesWonB >= gamesToWin) {
+          matchWon = currentMatch.teamB._id.toString();
+        }
+      } else {
+        // Non-league: Win 3 out of 5 rounds (each round = 2 out of 3 sets)
+        let roundsWonA = 0;
+        let roundsWonB = 0;
+        
+        for (let roundIndex = 0; roundIndex < 5; roundIndex++) {
+          const startIndex = roundIndex * 3;
+          const endIndex = Math.min(startIndex + 3, tableTennis.games.length);
+          
+          let setsWonA = 0;
+          let setsWonB = 0;
+          for (let i = startIndex; i < endIndex; i++) {
+            if (tableTennis.games[i] && tableTennis.games[i].winner === currentMatch.teamA._id.toString()) {
+              setsWonA++;
+            }
+            if (tableTennis.games[i] && tableTennis.games[i].winner === currentMatch.teamB._id.toString()) {
+              setsWonB++;
+            }
+          }
+          
+          if (setsWonA >= 2) roundsWonA++;
+          if (setsWonB >= 2) roundsWonB++;
+        }
+        
+        console.log(`Total rounds won - A: ${roundsWonA}, B: ${roundsWonB}`);
+        
+        if (roundsWonA >= 3) {
+          matchWon = currentMatch.teamA._id.toString();
+        } else if (roundsWonB >= 3) {
+          matchWon = currentMatch.teamB._id.toString();
+        }
+      }
+
+      // Store setWon for later use
+      if (setWonData) {
+        setWon = setWonData;
       }
 
       updateData['result.tableTennis'] = tableTennis;
-      updateData['result.scoreA'] = tableTennis.setsWonA;
-      updateData['result.scoreB'] = tableTennis.setsWonB;
+      updateData['result.scoreA'] = tableTennis.gamesWonA;
+      updateData['result.scoreB'] = tableTennis.gamesWonB;
       
       // If match is won, set winner and status
       if (matchWon) {
@@ -518,29 +608,96 @@ router.patch('/:id/score', authenticateAdmin, async (req, res) => {
       
       console.log('Point increments:', pointIncrements);
       console.log('Set won:', setWon);
+      console.log('Round won:', roundWonData);
       console.log('Match won:', matchWon);
       
-      // Priority: matchWon > setWon > scoreUpdate
-      // Only emit one type of event to avoid duplicate animations
+      // Priority: matchWon > roundWon > setWon > scoreUpdate
+      // Emit events in sequence with point increment for the winning action
       
       if (matchWon) {
-        // Match won - emit only matchWon event with point increment
+        // Match won - emit setWon first (if exists), then roundWon (if exists), then matchWon
         const winningTeam = String(matchWon) === String(match.teamA._id) ? 'A' : 'B';
-        const eventData = {
-          matchId: match._id.toString(),
-          winner: matchWon,
-          team: winningTeam,
-          pointIncrement: winningTeam === 'A' ? pointIncrements.teamA : pointIncrements.teamB,
-          scoreTypes: winningTeam === 'A' ? scoreTypes.teamA : scoreTypes.teamB
-        };
-        console.log('Emitting matchWon:', eventData);
-        io.to('live-scores').emit('matchWon', eventData);
+        const pointIncrement = winningTeam === 'A' ? pointIncrements.teamA : pointIncrements.teamB;
+        
+        if (setWon) {
+          // Emit setWon with point increment
+          console.log('Emitting setWon for match-winning point');
+          io.to('live-scores').emit('setWon', {
+            matchId: match._id.toString(),
+            team: setWon.team,
+            setNumber: setWon.setNumber,
+            gameType: setWon.gameType,
+            pointIncrement: pointIncrement
+          });
+          
+          // Emit roundWon if applicable (after set won animation: 1.5s point + 3s set = 4.5s)
+          if (roundWonData) {
+            setTimeout(() => {
+              console.log('Emitting roundWon after setWon');
+              io.to('live-scores').emit('roundWon', {
+                matchId: match._id.toString(),
+                team: roundWonData.team,
+                roundNumber: roundWonData.roundNumber
+              });
+              
+              // Emit matchWon after roundWon (after 3s more = 7.5s total)
+              setTimeout(() => {
+                console.log('Emitting matchWon after roundWon');
+                io.to('live-scores').emit('matchWon', {
+                  matchId: match._id.toString(),
+                  winner: matchWon,
+                  team: winningTeam
+                });
+              }, 3000);
+            }, 4500);
+          } else {
+            // No round won, emit matchWon after setWon (after 1.5s point + 3s set = 4.5s)
+            setTimeout(() => {
+              console.log('Emitting matchWon after setWon (no round won)');
+              io.to('live-scores').emit('matchWon', {
+                matchId: match._id.toString(),
+                winner: matchWon,
+                team: winningTeam
+              });
+            }, 4500);
+          }
+        } else {
+          // No set won, just emit matchWon immediately
+          console.log('Emitting matchWon immediately (no set won)');
+          io.to('live-scores').emit('matchWon', {
+            matchId: match._id.toString(),
+            winner: matchWon,
+            team: winningTeam
+          });
+        }
+      } else if (roundWonData) {
+        // Round won but match not won - emit setWon first, then roundWon
+        if (setWon) {
+          const pointIncrement = setWon.team === 'A' ? pointIncrements.teamA : pointIncrements.teamB;
+          io.to('live-scores').emit('setWon', {
+            matchId: match._id.toString(),
+            team: setWon.team,
+            setNumber: setWon.setNumber,
+            gameType: setWon.gameType,
+            pointIncrement: pointIncrement
+          });
+          
+          // Emit roundWon after setWon (after 3 seconds)
+          setTimeout(() => {
+            io.to('live-scores').emit('roundWon', {
+              matchId: match._id.toString(),
+              team: roundWonData.team,
+              roundNumber: roundWonData.roundNumber
+            });
+          }, 3000);
+        }
       } else if (setWon) {
-        // Set won - emit only setWon event with point increment
+        // Set won only - emit with point increment
         const eventData = {
           matchId: match._id.toString(),
           team: setWon.team,
           setNumber: setWon.setNumber,
+          gameType: setWon.gameType,
           pointIncrement: setWon.team === 'A' ? pointIncrements.teamA : pointIncrements.teamB
         };
         console.log('Emitting setWon:', eventData);

@@ -215,13 +215,15 @@ interface Match {
     teamAScore?: any;
     teamBScore?: any;
     tableTennis?: {
-      sets: Array<{
+      games: Array<{
+        type: 'Single' | 'Double';
         teamAScore: number;
         teamBScore: number;
+        maxScore: number;
         winner?: string;
       }>;
-      setsWonA: number;
-      setsWonB: number;
+      gamesWonA: number;
+      gamesWonB: number;
     };
   };
 }
@@ -235,8 +237,10 @@ export default function MatchDetail() {
     team: 'A' | 'B';
     increment: number;
     teamName: string;
-    type?: 'pointScored' | 'setWon' | 'matchWon';
+    type?: 'pointScored' | 'setWon' | 'roundWon' | 'matchWon';
     setNumber?: number;
+    roundNumber?: number;
+    gameType?: string;
     scoreTypes?: Array<{ type: string; value: number }>;
   } | null>(null);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -395,10 +399,14 @@ export default function MatchDetail() {
     }
   }, [matchId]);
 
-  const handleSetWon = useCallback((data: { matchId: string; team: 'A' | 'B'; setNumber: number; pointIncrement?: number }) => {
-    console.log('Set won received:', data);
+  const handleSetWon = useCallback((data: { matchId: string; team: 'A' | 'B'; setNumber: number; pointIncrement?: number; gameType?: string }) => {
+    console.log('=== SET WON EVENT RECEIVED ===');
+    console.log('Full data:', data);
+    console.log('Current matchId:', matchId);
+    console.log('Animation in progress:', animationInProgress.current);
     
     if (data.matchId === matchId && !animationInProgress.current) {
+      console.log('Processing set won animation...');
       animationInProgress.current = true;
       
       api.get(`/api/schedule/${matchId}`).then(response => {
@@ -413,8 +421,13 @@ export default function MatchDetail() {
           teamName = `${team.hallId.name} (Team ${team.teamName})`;
         }
         
-        // First show point scored animation if there was a point increment
+        console.log('Team name:', teamName);
+        console.log('Point increment:', data.pointIncrement);
+        console.log('Game type:', data.gameType);
+        
+        // Show point scored animation first (1.5 seconds)
         if (data.pointIncrement && data.pointIncrement > 0) {
+          console.log('Showing point scored animation first');
           setScoreAnimation({
             team: data.team,
             increment: data.pointIncrement,
@@ -422,39 +435,92 @@ export default function MatchDetail() {
             type: 'pointScored'
           });
 
-          // After 1.5 seconds, show set won animation
+          // After 1.5 seconds, show set won animation (3 seconds)
           setTimeout(() => {
+            console.log('Now showing set won animation');
             triggerConfetti();
             setScoreAnimation({
               team: data.team,
               increment: 0,
               teamName: teamName,
               type: 'setWon',
-              setNumber: data.setNumber
+              setNumber: data.setNumber,
+              gameType: data.gameType
             });
 
-            // Hide animation after 5 seconds
+            // Hide animation after 3 seconds
             setTimeout(() => {
+              console.log('Hiding set won animation');
               setScoreAnimation(null);
               animationInProgress.current = false;
-            }, 5000);
+            }, 3000);
           }, 1500);
         } else {
-          // No point increment, just show set won
+          // No point increment, just show set won (3 seconds)
+          console.log('Showing set won animation directly (no point increment)');
           triggerConfetti();
           setScoreAnimation({
             team: data.team,
             increment: 0,
             teamName: teamName,
             type: 'setWon',
-            setNumber: data.setNumber
+            setNumber: data.setNumber,
+            gameType: data.gameType
           });
 
           setTimeout(() => {
+            console.log('Hiding set won animation');
             setScoreAnimation(null);
             animationInProgress.current = false;
-          }, 5000);
+          }, 3000);
         }
+      }).catch(error => {
+        console.error('Error fetching match data:', error);
+        animationInProgress.current = false;
+      });
+    } else {
+      console.log('Skipping animation - matchId mismatch or animation in progress');
+    }
+  }, [matchId]);
+
+  const handleRoundWon = useCallback((data: { matchId: string; team: 'A' | 'B'; roundNumber: number }) => {
+    console.log('=== ROUND WON EVENT RECEIVED ===', data);
+    
+    if (data.matchId === matchId && !animationInProgress.current) {
+      console.log('Processing round won animation...');
+      animationInProgress.current = true;
+      
+      api.get(`/api/schedule/${matchId}`).then(response => {
+        const currentMatch = response.data;
+        const team = data.team === 'A' ? currentMatch.teamA : currentMatch.teamB;
+        
+        // Build team name
+        let teamName = '';
+        if (team.secondTeamName) {
+          teamName = `${team.secondTeamName} (Team ${team.teamName} - ${team.hallId.name})`;
+        } else {
+          teamName = `${team.hallId.name} (Team ${team.teamName})`;
+        }
+        
+        console.log('Showing round won animation');
+        triggerConfetti();
+        setScoreAnimation({
+          team: data.team,
+          increment: 0,
+          teamName: teamName,
+          type: 'roundWon',
+          roundNumber: data.roundNumber
+        });
+
+        // Hide animation after 3 seconds
+        setTimeout(() => {
+          console.log('Hiding round won animation');
+          setScoreAnimation(null);
+          animationInProgress.current = false;
+        }, 3000);
+      }).catch(error => {
+        console.error('Error fetching match data:', error);
+        animationInProgress.current = false;
       });
     }
   }, [matchId]);
@@ -479,54 +545,29 @@ export default function MatchDetail() {
           teamName = `${winnerTeam.hallId.name} (Team ${winnerTeam.teamName})`;
         }
         
-        // First show point scored animation if there was a point increment
-        if (data.pointIncrement && data.pointIncrement > 0 && data.team) {
-          setScoreAnimation({
-            team: data.team,
-            increment: data.pointIncrement,
-            teamName: teamName,
-            type: 'pointScored',
-            scoreTypes: data.scoreTypes
-          });
+        // Show match won animation (5 seconds)
+        triggerFireworks();
+        setScoreAnimation({
+          team: isTeamA ? 'A' : 'B',
+          increment: 0,
+          teamName: teamName,
+          type: 'matchWon'
+        });
 
-          // After 1.5 seconds, show match won animation
-          setTimeout(() => {
-            triggerFireworks();
-            setScoreAnimation({
-              team: isTeamA ? 'A' : 'B',
-              increment: 0,
-              teamName: teamName,
-              type: 'matchWon'
-            });
-
-            // Hide animation after 5 seconds
-            setTimeout(() => {
-              setScoreAnimation(null);
-              animationInProgress.current = false;
-            }, 5000);
-          }, 1500);
-        } else {
-          // No point increment, just show match won
-          triggerFireworks();
-          setScoreAnimation({
-            team: isTeamA ? 'A' : 'B',
-            increment: 0,
-            teamName: teamName,
-            type: 'matchWon'
-          });
-
-          setTimeout(() => {
-            setScoreAnimation(null);
-            animationInProgress.current = false;
-          }, 5000);
-        }
+        setTimeout(() => {
+          setScoreAnimation(null);
+          animationInProgress.current = false;
+        }, 5000);
       });
     }
   }, [matchId]);
 
   useEffect(() => {
+    // Only fetch on initial mount
     fetchMatch();
+  }, [matchId]); // Only re-fetch when matchId changes
 
+  useEffect(() => {
     // Connect to socket if not connected
     if (!socket.connected) {
       console.log('MatchDetail: Socket not connected, connecting...');
@@ -542,7 +583,14 @@ export default function MatchDetail() {
     // Socket listener for real-time updates
     socket.on('matchUpdated', handleMatchUpdate);
     socket.on('scoreUpdate', handleScoreUpdate);
-    socket.on('setWon', handleSetWon);
+    socket.on('setWon', (data) => {
+      console.log('=== setWon event received by socket listener ===', data);
+      handleSetWon(data);
+    });
+    socket.on('roundWon', (data) => {
+      console.log('=== roundWon event received by socket listener ===', data);
+      handleRoundWon(data);
+    });
     socket.on('matchWon', handleMatchWon);
 
     return () => {
@@ -550,11 +598,12 @@ export default function MatchDetail() {
       socket.off('matchUpdated', handleMatchUpdate);
       socket.off('scoreUpdate', handleScoreUpdate);
       socket.off('setWon', handleSetWon);
+      socket.off('roundWon', handleRoundWon);
       socket.off('matchWon', handleMatchWon);
       socket.emit('leave-scores');
       console.log('MatchDetail: Left live-scores room');
     };
-  }, [matchId, handleMatchUpdate, handleScoreUpdate, handleSetWon, handleMatchWon]);
+  }, [matchId, handleMatchUpdate, handleScoreUpdate, handleSetWon, handleRoundWon, handleMatchWon]);
 
   // Update match when live scores change
   useEffect(() => {
@@ -604,7 +653,38 @@ export default function MatchDetail() {
     }
     
     if (gameName === 'TABLE TENNIS') {
-      return team === 'A' ? (match.result.tableTennis?.setsWonA || 0) : (match.result.tableTennis?.setsWonB || 0);
+      const isLeague = match.round === 'League Stage';
+      
+      if (isLeague) {
+        // For league, show games won (5 games total)
+        return team === 'A' ? (match.result.tableTennis?.gamesWonA || 0) : (match.result.tableTennis?.gamesWonB || 0);
+      } else {
+        // For non-league, calculate rounds won (5 rounds, each with 3 sets)
+        const games = match.result.tableTennis?.games || [];
+        const teamId = team === 'A' ? match.teamA._id : match.teamB._id;
+        let roundsWon = 0;
+        
+        // Check each of the 5 rounds
+        for (let roundIndex = 0; roundIndex < 5; roundIndex++) {
+          const startIndex = roundIndex * 3;
+          const endIndex = Math.min(startIndex + 3, games.length);
+          
+          // Count sets won in this round
+          let setsWonInRound = 0;
+          for (let i = startIndex; i < endIndex; i++) {
+            if (games[i] && String(games[i].winner) === String(teamId)) {
+              setsWonInRound++;
+            }
+          }
+          
+          // If won 2 or more sets in this round, won the round
+          if (setsWonInRound >= 2) {
+            roundsWon++;
+          }
+        }
+        
+        return roundsWon;
+      }
     }
     
     return 0;
@@ -827,52 +907,231 @@ export default function MatchDetail() {
             </div>
           </div>
 
-          {/* Table Tennis Current Set Score */}
-          {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.sets && match.result.tableTennis.sets.length > 0 && match.status === 'Live' && (
+          {/* Table Tennis Current Game Score */}
+          {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && match.result.tableTennis.games.length > 0 && match.status === 'Live' && (
             <div className="mt-8 glass-card p-6 rounded-xl relative overflow-hidden group max-w-4xl mx-auto">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10">
                 {(() => {
-                  // Find the current active set (first set without a winner)
-                  const currentSetIndex = match.result.tableTennis.sets.findIndex(set => !set.winner);
-                  const activeSetIndex = currentSetIndex !== -1 ? currentSetIndex : match.result.tableTennis.sets.length - 1;
-                  const currentSet = match.result.tableTennis.sets[activeSetIndex];
-                  if (!currentSet) return null;
+                  const isLeague = match.round === 'League Stage';
                   
-                  const setNumber = activeSetIndex + 1; // 1-indexed
+                  // Calculate the actual active game index based on round completion
+                  let activeGameIndex = 0;
+                  
+                  if (isLeague) {
+                    // For league, just find first game without winner
+                    const foundIndex = match.result.tableTennis.games.findIndex(game => !game.winner);
+                    activeGameIndex = foundIndex !== -1 ? foundIndex : match.result.tableTennis.games.length - 1;
+                  } else {
+                    // For non-league, check each round and skip completed rounds
+                    let found = false;
+                    for (let roundIndex = 0; roundIndex < 5; roundIndex++) {
+                      const startIndex = roundIndex * 3;
+                      const endIndex = Math.min(startIndex + 3, match.result.tableTennis.games.length);
+                      
+                      // Count wins in this round
+                      let winsA = 0;
+                      let winsB = 0;
+                      for (let i = startIndex; i < endIndex; i++) {
+                        if (match.result.tableTennis.games[i]?.winner === match.teamA._id) winsA++;
+                        if (match.result.tableTennis.games[i]?.winner === match.teamB._id) winsB++;
+                      }
+                      
+                      // If round is not completed (neither team has 2 wins), find first game without winner in this round
+                      if (winsA < 2 && winsB < 2) {
+                        for (let i = startIndex; i < endIndex; i++) {
+                          if (!match.result.tableTennis.games[i]?.winner) {
+                            activeGameIndex = i;
+                            found = true;
+                            break;
+                          }
+                        }
+                        if (found) break;
+                      }
+                    }
+                    
+                    // If no active game found, use last game
+                    if (!found) {
+                      activeGameIndex = match.result.tableTennis.games.length - 1;
+                    }
+                  }
+                  
+                  const currentGame = match.result.tableTennis.games[activeGameIndex];
+                  if (!currentGame) return null;
+                  
+                  const gameNumber = activeGameIndex + 1; // 1-indexed
                   
                   return (
                     <>
-                      <p className="text-center text-gray-400 text-sm mb-3">Current Set Score (Set {setNumber})</p>
+                      <p className="text-center text-gray-400 text-sm mb-3">
+                        Current Round Score ({(() => {
+                          if (isLeague) {
+                            return `Round ${gameNumber}`;
+                          } else {
+                            // For non-league, calculate round and set (3 sets per round)
+                            const roundNum = Math.floor((gameNumber - 1) / 3) + 1;
+                            const setNum = ((gameNumber - 1) % 3) + 1;
+                            return `Round ${roundNum} - Set ${setNum}`;
+                          }
+                        })()} - {currentGame.type})
+                      </p>
                     </>
                   );
                 })()}
-                <div className="flex items-center justify-center gap-6">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center justify-center gap-6">
+                    {(() => {
+                      const isLeague = match.round === 'League Stage';
+                      
+                      // Use same logic to find active game
+                      let activeGameIndex = 0;
+                      
+                      if (isLeague) {
+                        const foundIndex = match.result.tableTennis.games.findIndex(game => !game.winner);
+                        activeGameIndex = foundIndex !== -1 ? foundIndex : match.result.tableTennis.games.length - 1;
+                      } else {
+                        let found = false;
+                        for (let roundIndex = 0; roundIndex < 5; roundIndex++) {
+                          const startIndex = roundIndex * 3;
+                          const endIndex = Math.min(startIndex + 3, match.result.tableTennis.games.length);
+                          
+                          let winsA = 0;
+                          let winsB = 0;
+                          for (let i = startIndex; i < endIndex; i++) {
+                            if (match.result.tableTennis.games[i]?.winner === match.teamA._id) winsA++;
+                            if (match.result.tableTennis.games[i]?.winner === match.teamB._id) winsB++;
+                          }
+                          
+                          if (winsA < 2 && winsB < 2) {
+                            for (let i = startIndex; i < endIndex; i++) {
+                              if (!match.result.tableTennis.games[i]?.winner) {
+                                activeGameIndex = i;
+                                found = true;
+                                break;
+                              }
+                            }
+                            if (found) break;
+                          }
+                        }
+                        
+                        if (!found) {
+                          activeGameIndex = match.result.tableTennis.games.length - 1;
+                        }
+                      }
+                      
+                      const currentGame = match.result.tableTennis.games[activeGameIndex];
+                      if (!currentGame) return null;
+                      
+                      return (
+                        <>
+                          <div className="text-5xl font-bold text-primary text-glow">{currentGame.teamAScore || 0}</div>
+                          <div className="text-gray-600 text-3xl">-</div>
+                          <div className="text-5xl font-bold text-primary text-glow">{currentGame.teamBScore || 0}</div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  
+                  {/* DEUCE indicator below scores */}
                   {(() => {
-                    // Find the current active set (first set without a winner)
-                    const currentSet = match.result.tableTennis.sets.find(set => !set.winner) || match.result.tableTennis.sets[match.result.tableTennis.sets.length - 1];
-                    if (!currentSet) return null;
+                    const isLeague = match.round === 'League Stage';
                     
-                    const winningScore = match.matchType === 'Doubles' ? 15 : 11;
-                    const isDeuceRange = currentSet.teamAScore >= winningScore - 1 && currentSet.teamBScore >= winningScore - 1;
-                    const isDeuce = isDeuceRange && Math.abs(currentSet.teamAScore - currentSet.teamBScore) < 2;
+                    // Use same logic to find active game
+                    let activeGameIndex = 0;
                     
-                    return (
-                      <>
-                        <div className="text-5xl font-bold text-primary text-glow">{currentSet.teamAScore || 0}</div>
-                        <div className="text-gray-600 text-3xl">-</div>
-                        <div className="text-5xl font-bold text-primary text-glow">{currentSet.teamBScore || 0}</div>
-                        {isDeuce && (
-                          <div className="ml-4 px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-full animate-pulse">
-                            <span className="text-yellow-500 font-bold text-sm">DEUCE</span>
-                          </div>
-                        )}
-                      </>
-                    );
+                    if (isLeague) {
+                      const foundIndex = match.result.tableTennis.games.findIndex(game => !game.winner);
+                      activeGameIndex = foundIndex !== -1 ? foundIndex : match.result.tableTennis.games.length - 1;
+                    } else {
+                      let found = false;
+                      for (let roundIndex = 0; roundIndex < 5; roundIndex++) {
+                        const startIndex = roundIndex * 3;
+                        const endIndex = Math.min(startIndex + 3, match.result.tableTennis.games.length);
+                        
+                        let winsA = 0;
+                        let winsB = 0;
+                        for (let i = startIndex; i < endIndex; i++) {
+                          if (match.result.tableTennis.games[i]?.winner === match.teamA._id) winsA++;
+                          if (match.result.tableTennis.games[i]?.winner === match.teamB._id) winsB++;
+                        }
+                        
+                        if (winsA < 2 && winsB < 2) {
+                          for (let i = startIndex; i < endIndex; i++) {
+                            if (!match.result.tableTennis.games[i]?.winner) {
+                              activeGameIndex = i;
+                              found = true;
+                              break;
+                            }
+                          }
+                          if (found) break;
+                        }
+                      }
+                      
+                      if (!found) {
+                        activeGameIndex = match.result.tableTennis.games.length - 1;
+                      }
+                    }
+                    
+                    const currentGame = match.result.tableTennis.games[activeGameIndex];
+                    if (!currentGame) return null;
+                    
+                    const winningScore = currentGame.maxScore;
+                    const isDeuceRange = currentGame.teamAScore >= winningScore - 1 && currentGame.teamBScore >= winningScore - 1;
+                    const isDeuce = isDeuceRange && Math.abs(currentGame.teamAScore - currentGame.teamBScore) < 2;
+                    
+                    if (isDeuce) {
+                      return (
+                        <div className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-full animate-pulse">
+                          <span className="text-yellow-500 font-bold text-sm">DEUCE</span>
+                        </div>
+                      );
+                    }
+                    return null;
                   })()}
                 </div>
                 <p className="text-center text-gray-500 text-xs mt-3">
-                  Playing to {match.matchType === 'Doubles' ? '15' : '11'} points
+                  Playing to {(() => {
+                    const isLeague = match.round === 'League Stage';
+                    
+                    // Use same logic to find active game
+                    let activeGameIndex = 0;
+                    
+                    if (isLeague) {
+                      const foundIndex = match.result.tableTennis.games.findIndex(game => !game.winner);
+                      activeGameIndex = foundIndex !== -1 ? foundIndex : match.result.tableTennis.games.length - 1;
+                    } else {
+                      let found = false;
+                      for (let roundIndex = 0; roundIndex < 5; roundIndex++) {
+                        const startIndex = roundIndex * 3;
+                        const endIndex = Math.min(startIndex + 3, match.result.tableTennis.games.length);
+                        
+                        let winsA = 0;
+                        let winsB = 0;
+                        for (let i = startIndex; i < endIndex; i++) {
+                          if (match.result.tableTennis.games[i]?.winner === match.teamA._id) winsA++;
+                          if (match.result.tableTennis.games[i]?.winner === match.teamB._id) winsB++;
+                        }
+                        
+                        if (winsA < 2 && winsB < 2) {
+                          for (let i = startIndex; i < endIndex; i++) {
+                            if (!match.result.tableTennis.games[i]?.winner) {
+                              activeGameIndex = i;
+                              found = true;
+                              break;
+                            }
+                          }
+                          if (found) break;
+                        }
+                      }
+                      
+                      if (!found) {
+                        activeGameIndex = match.result.tableTennis.games.length - 1;
+                      }
+                    }
+                    
+                    const currentGame = match.result.tableTennis.games[activeGameIndex];
+                    return currentGame?.maxScore || 11;
+                  })()} points
                 </p>
               </div>
             </div>
@@ -906,29 +1165,144 @@ export default function MatchDetail() {
         </motion.div>
 
         {/* Detailed Scoring */}
-        {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.sets && (
+        {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="max-w-4xl mx-auto"
           >
-            <h3 className="text-2xl font-bold text-primary mb-6">Set-wise Scores</h3>
+            <h3 className="text-2xl font-bold text-primary mb-6">Round-wise Scores</h3>
             <div className="space-y-4">
-              {match.result.tableTennis.sets.map((set, index) => (
-                <div key={index} className="glass-card flex items-center justify-between p-6 rounded-xl hover:border-primary/30 transition-all duration-300 group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <span className="relative z-10 text-gray-400 font-semibold text-lg">Set {index + 1}</span>
-                  <div className="relative z-10 flex items-center gap-6">
-                    <span className={`text-3xl font-bold ${set.winner === match.teamA._id ? 'text-primary text-glow' : 'text-gray-400'}`}>
-                      {set.teamAScore}
-                    </span>
-                    <span className="text-gray-600 text-2xl">-</span>
-                    <span className={`text-3xl font-bold ${set.winner === match.teamB._id ? 'text-primary text-glow' : 'text-gray-400'}`}>
-                      {set.teamBScore}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {(() => {
+                const isLeague = match.round === 'League Stage';
+                const roundPattern = ['Single', 'Double', 'Single', 'Double', 'Single'];
+                
+                // Group games by rounds
+                const groupedRounds = roundPattern.map((type, roundIndex) => {
+                  if (isLeague) {
+                    // League: 1 set per round
+                    return {
+                      roundNumber: roundIndex + 1,
+                      type: type,
+                      sets: [match.result.tableTennis.games[roundIndex]]
+                    };
+                  } else {
+                    // Non-league: 3 sets per round
+                    const startIndex = roundIndex * 3;
+                    return {
+                      roundNumber: roundIndex + 1,
+                      type: type,
+                      sets: match.result.tableTennis.games.slice(startIndex, startIndex + 3)
+                    };
+                  }
+                });
+                
+                return groupedRounds.map((round, roundIndex) => {
+                  if (!round.sets || round.sets.length === 0 || !round.sets[0]) return null;
+                  
+                  // For league matches, show compact single-row layout
+                  if (isLeague) {
+                    const set = round.sets[0];
+                    return (
+                      <div key={roundIndex} className="glass-card rounded-xl p-4 hover:border-primary/30 transition-all duration-300 group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        {/* Single row layout for league */}
+                        <div className="relative z-10 flex items-center justify-between">
+                          {/* Left: Round number and type */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-primary font-bold text-xl">Round {round.roundNumber}</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                              round.type === 'Single' 
+                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                                : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                            }`}>
+                              {round.type}
+                            </span>
+                          </div>
+                          
+                          {/* Right: Scores */}
+                          <div className="flex items-center gap-6">
+                            <span className={`text-3xl font-bold ${set.winner === match.teamA._id ? 'text-primary text-glow' : 'text-gray-400'}`}>
+                              {set.teamAScore}
+                            </span>
+                            <span className="text-gray-600 text-2xl">-</span>
+                            <span className={`text-3xl font-bold ${set.winner === match.teamB._id ? 'text-primary text-glow' : 'text-gray-400'}`}>
+                              {set.teamBScore}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // For non-league matches, show expanded layout with sets
+                  return (
+                    <div key={roundIndex} className="glass-card rounded-xl p-6 hover:border-primary/30 transition-all duration-300 group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      
+                      {/* Round Header */}
+                      <div className="relative z-10 flex items-center gap-3 mb-4 pb-3 border-b border-primary/20 flex-wrap">
+                        <span className="text-primary font-bold text-xl">Round {round.roundNumber}</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          round.type === 'Single' 
+                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                            : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                        }`}>
+                          {round.type}
+                        </span>
+                        {/* Round Winner Badge for non-league completed rounds */}
+                        {(() => {
+                          // Count sets won in this round
+                          let setsWonA = 0;
+                          let setsWonB = 0;
+                          round.sets.forEach(set => {
+                            if (set && set.winner === match.teamA._id) setsWonA++;
+                            if (set && set.winner === match.teamB._id) setsWonB++;
+                          });
+                          
+                          if (setsWonA >= 2 || setsWonB >= 2) {
+                            const roundWinner = setsWonA >= 2 ? match.teamA : match.teamB;
+                            const winnerName = roundWinner.secondTeamName || roundWinner.hallId.name;
+                            return (
+                              <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
+                                Won by {winnerName}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      
+                      {/* Sets in this round */}
+                      <div className="relative z-10 space-y-3">
+                        {round.sets.map((set, setIndex) => {
+                          if (!set) return null;
+                          
+                          return (
+                            <div key={setIndex} className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                              <div className="flex items-center gap-3">
+                                {!isLeague && (
+                                  <span className="text-gray-400 font-semibold">Set {setIndex + 1}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-6">
+                                <span className={`text-3xl font-bold ${set.winner === match.teamA._id ? 'text-primary text-glow' : 'text-gray-400'}`}>
+                                  {set.teamAScore}
+                                </span>
+                                <span className="text-gray-600 text-2xl">-</span>
+                                <span className={`text-3xl font-bold ${set.winner === match.teamB._id ? 'text-primary text-glow' : 'text-gray-400'}`}>
+                                  {set.teamBScore}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </motion.div>
         )}
@@ -1033,7 +1407,7 @@ export default function MatchDetail() {
                   </>
                 )}
 
-                {/* Set Won */}
+                {/* Set/Game Won */}
                 {scoreAnimation.type === 'setWon' && (
                   <>
                     <motion.div
@@ -1055,7 +1429,48 @@ export default function MatchDetail() {
                         {scoreAnimation.teamName}
                       </p>
                       <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-yellow-300 to-primary bg-clip-text text-transparent">
-                        Won Set {scoreAnimation.setNumber}!
+                        {match?.game.name.toUpperCase() === 'TABLE TENNIS' 
+                          ? (() => {
+                              const isLeague = match.round === 'League Stage';
+                              if (isLeague) {
+                                return `Won Round ${scoreAnimation.setNumber}!${scoreAnimation.gameType ? ` (${scoreAnimation.gameType})` : ''}`;
+                              } else {
+                                // For non-league, calculate round and set (3 sets per round)
+                                const roundNum = Math.floor((scoreAnimation.setNumber - 1) / 3) + 1;
+                                const setNum = ((scoreAnimation.setNumber - 1) % 3) + 1;
+                                return `Won Round ${roundNum} - Set ${setNum}!${scoreAnimation.gameType ? ` (${scoreAnimation.gameType})` : ''}`;
+                              }
+                            })()
+                          : `Won Set ${scoreAnimation.setNumber}!`
+                        }
+                      </p>
+                    </motion.div>
+                  </>
+                )}
+
+                {/* Round Won */}
+                {scoreAnimation.type === 'roundWon' && (
+                  <>
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                      className="flex justify-center mb-6"
+                    >
+                      <Trophy className="w-40 h-40 text-yellow-500" />
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="space-y-4"
+                    >
+                      <p className="text-4xl md:text-5xl font-bold text-white">
+                        {scoreAnimation.teamName}
+                      </p>
+                      <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-yellow-300 to-primary bg-clip-text text-transparent">
+                        Won Round {scoreAnimation.roundNumber}!
                       </p>
                     </motion.div>
                   </>

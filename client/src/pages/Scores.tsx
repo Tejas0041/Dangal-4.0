@@ -211,13 +211,15 @@ interface Match {
     teamAScore?: any;
     teamBScore?: any;
     tableTennis?: {
-      sets: Array<{
+      games: Array<{
+        type: 'Single' | 'Double';
         teamAScore: number;
         teamBScore: number;
+        maxScore: number;
         winner?: string;
       }>;
-      setsWonA: number;
-      setsWonB: number;
+      gamesWonA: number;
+      gamesWonB: number;
     };
   };
 }
@@ -374,7 +376,7 @@ export default function Scores() {
     }
     
     if (gameName === 'TABLE TENNIS') {
-      return team === 'A' ? (match.result.tableTennis?.setsWonA || 0) : (match.result.tableTennis?.setsWonB || 0);
+      return team === 'A' ? (match.result.tableTennis?.gamesWonA || 0) : (match.result.tableTennis?.gamesWonB || 0);
     }
     
     return 0;
@@ -562,17 +564,37 @@ export default function Scores() {
                           </div>
                         </div>
                         
-                        {/* Table Tennis Set Details */}
-                        {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.sets && (
+                        {/* Table Tennis Game Details */}
+                        {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && (
                           <div className="flex items-center gap-1 text-xs mt-1">
-                            {match.result.tableTennis.sets.map((set, idx) => (
-                              <div key={idx} className="flex flex-col items-center">
-                                <span className="px-1.5 py-0.5 bg-white/5 rounded text-gray-400">
-                                  {set.teamAScore}-{set.teamBScore}
-                                </span>
-                                <span className="text-[10px] text-yellow-500 mt-0.5">Set {idx + 1}</span>
-                              </div>
-                            ))}
+                            {/* Show current game only */}
+                            {(() => {
+                              const currentGame = match.result.tableTennis.games.find(g => !g.winner) || match.result.tableTennis.games[match.result.tableTennis.games.length - 1];
+                              if (!currentGame) return null;
+                              const gameIndex = match.result.tableTennis.games.indexOf(currentGame);
+                              const gameNumber = gameIndex + 1;
+                              const isLeague = match.round === 'League Stage';
+                              
+                              let displayText = '';
+                              if (isLeague) {
+                                displayText = `Round ${gameNumber}`;
+                              } else {
+                                const roundNum = Math.floor(gameIndex / 5) + 1;
+                                const setNum = (gameIndex % 5) + 1;
+                                displayText = `R${roundNum}-S${setNum}`;
+                              }
+                              
+                              return (
+                                <div className="flex flex-col items-center">
+                                  <span className="px-1.5 py-0.5 bg-white/5 rounded text-gray-400">
+                                    {currentGame.teamAScore}-{currentGame.teamBScore}
+                                  </span>
+                                  <span className="text-[10px] text-yellow-500 mt-0.5">
+                                    {displayText} ({currentGame.type})
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -677,17 +699,37 @@ export default function Scores() {
                           </div>
                         </div>
                         
-                        {/* Table Tennis Set Details */}
-                        {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.sets && (
+                        {/* Table Tennis Game Details */}
+                        {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && (
                           <div className="flex items-center gap-1 text-xs mt-1">
-                            {match.result.tableTennis.sets.map((set, idx) => (
-                              <div key={idx} className="flex flex-col items-center">
-                                <span className="px-1.5 py-0.5 bg-white/5 rounded text-gray-500">
-                                  {set.teamAScore}-{set.teamBScore}
-                                </span>
-                                <span className="text-[10px] text-yellow-500 mt-0.5">Set {idx + 1}</span>
-                              </div>
-                            ))}
+                            {/* Show current game only */}
+                            {(() => {
+                              const currentGame = match.result.tableTennis.games.find(g => !g.winner) || match.result.tableTennis.games[match.result.tableTennis.games.length - 1];
+                              if (!currentGame) return null;
+                              const gameIndex = match.result.tableTennis.games.indexOf(currentGame);
+                              const gameNumber = gameIndex + 1;
+                              const isLeague = match.round === 'League Stage';
+                              
+                              let displayText = '';
+                              if (isLeague) {
+                                displayText = `Round ${gameNumber}`;
+                              } else {
+                                const roundNum = Math.floor(gameIndex / 5) + 1;
+                                const setNum = (gameIndex % 5) + 1;
+                                displayText = `R${roundNum}-S${setNum}`;
+                              }
+                              
+                              return (
+                                <div className="flex flex-col items-center">
+                                  <span className="px-1.5 py-0.5 bg-white/5 rounded text-gray-500">
+                                    {currentGame.teamAScore}-{currentGame.teamBScore}
+                                  </span>
+                                  <span className="text-[10px] text-yellow-500 mt-0.5">
+                                    {displayText} ({currentGame.type})
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>

@@ -33,10 +33,6 @@ const scheduleSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  matchType: {
-    type: String,
-    enum: ['Singles', 'Doubles']
-  },
   round: {
     type: String,
     enum: ['League Stage', 'Semi Final', 'Final'],
@@ -68,16 +64,22 @@ const scheduleSchema = new mongoose.Schema({
     },
     // Table Tennis specific scoring
     tableTennis: {
-      sets: [{
+      games: [{
+        type: { 
+          type: String, 
+          enum: ['Single', 'Double'],
+          required: true 
+        },
         teamAScore: { type: Number, default: 0 },
         teamBScore: { type: Number, default: 0 },
+        maxScore: { type: Number, default: 11 }, // 11 for Single, 15 for Double
         winner: {
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Team'
         }
       }],
-      setsWonA: { type: Number, default: 0 },
-      setsWonB: { type: Number, default: 0 }
+      gamesWonA: { type: Number, default: 0 },
+      gamesWonB: { type: Number, default: 0 }
     }
   }
 }, {
