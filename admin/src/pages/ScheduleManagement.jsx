@@ -1192,6 +1192,7 @@ const ScheduleManagement = () => {
                       }}
                     >
                       <option value="League Stage" style={{ background: '#1a1a1a', color: '#fff' }}>League Stage</option>
+                      <option value="Quarters" style={{ background: '#1a1a1a', color: '#fff' }}>Quarters</option>
                       <option value="Semi Final" style={{ background: '#1a1a1a', color: '#fff' }}>Semi Final</option>
                       <option value="Final" style={{ background: '#1a1a1a', color: '#fff' }}>Final</option>
                     </select>

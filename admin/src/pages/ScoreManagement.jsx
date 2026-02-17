@@ -2574,6 +2574,28 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
         <div style={{ display: 'grid', gridTemplateColumns: '2fr auto 2fr', gap: '3rem', alignItems: 'start' }}>
           {/* Team A Scores */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Team A Header */}
+            <div style={{
+              textAlign: 'right',
+              padding: '0.75rem 1.25rem',
+              marginBottom: '0.5rem'
+            }}>
+              <div style={{ 
+                color: '#FFD700', 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                marginBottom: '0.25rem'
+              }}>
+                {getTeamFullName(match.teamA)}
+              </div>
+              <div style={{ 
+                color: '#888', 
+                fontSize: '0.85rem'
+              }}>
+                Team A
+              </div>
+            </div>
+            
             {scoreCategories.map(({ field }) => (
               <div key={field} style={{
                 display: 'flex',
@@ -2627,6 +2649,13 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
 
           {/* Center Labels */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Empty space for alignment with team headers */}
+            <div style={{ 
+              padding: '0.75rem 0',
+              marginBottom: '0.5rem',
+              minHeight: '60px'
+            }}></div>
+            
             {scoreCategories.map(({ label }) => (
               <div key={label} style={{
                 minHeight: '60px',
@@ -2647,6 +2676,28 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
 
           {/* Team B Scores */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Team B Header */}
+            <div style={{
+              textAlign: 'left',
+              padding: '0.75rem 1.25rem',
+              marginBottom: '0.5rem'
+            }}>
+              <div style={{ 
+                color: '#FFD700', 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                marginBottom: '0.25rem'
+              }}>
+                {getTeamFullName(match.teamB)}
+              </div>
+              <div style={{ 
+                color: '#888', 
+                fontSize: '0.85rem'
+              }}>
+                Team B
+              </div>
+            </div>
+            
             {scoreCategories.map(({ field }) => (
               <div key={field} style={{
                 display: 'flex',

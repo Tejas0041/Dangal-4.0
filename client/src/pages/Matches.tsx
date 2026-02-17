@@ -117,7 +117,7 @@ export default function Matches() {
     }
   };
 
-  const rounds = ["All", "League Stage", "Semi Final", "Final"];
+  const rounds = ["All", "League Stage", "Quarters", "Semi Final", "Final"];
   
   const filteredMatches = selectedRound === "All" 
     ? matches 

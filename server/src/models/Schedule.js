@@ -35,7 +35,7 @@ const scheduleSchema = new mongoose.Schema({
   },
   round: {
     type: String,
-    enum: ['League Stage', 'Semi Final', 'Final'],
+    enum: ['League Stage', 'Quarters', 'Semi Final', 'Final'],
     default: 'League Stage'
   },
   status: {
