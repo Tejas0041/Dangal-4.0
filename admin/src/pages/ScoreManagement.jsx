@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
 import Toast from '../components/Toast';
@@ -23,6 +23,9 @@ const ScoreManagement = () => {
   const [tieMatchData, setTieMatchData] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isPendingSave, setIsPendingSave] = useState(false);
+  const [showEndHalfConfirm, setShowEndHalfConfirm] = useState(false);
+  const [endingHalf, setEndingHalf] = useState(false);
+  const [matchToEndHalf, setMatchToEndHalf] = useState(null);
   
   // Search and filter states
   const [searchMatchNumber, setSearchMatchNumber] = useState('');
@@ -149,6 +152,34 @@ const ScoreManagement = () => {
   const cancelEndMatch = () => {
     setShowEndMatchConfirm(false);
     setMatchToEnd(null);
+  };
+
+  const confirmEndHalf = async () => {
+    setEndingHalf(true);
+    try {
+      const response = await axios.patch(
+        `${API_URL}/api/schedule/${matchToEndHalf}/kabaddi/end-half`,
+        {},
+        { withCredentials: true }
+      );
+      setToast({ message: 'First half ended successfully!', type: 'success' });
+      
+      // Update the selected match with the response data
+      setSelectedMatch(response.data);
+      
+      // Close dialog
+      setEndingHalf(false);
+      setShowEndHalfConfirm(false);
+      setMatchToEndHalf(null);
+    } catch (error) {
+      console.error('Error ending half:', error);
+      setToast({
+        message: 'Failed to end half: ' + (error.response?.data?.message || error.message),
+        type: 'error'
+      });
+      setEndingHalf(false);
+      setShowEndHalfConfirm(false);
+    }
   };
 
   const selectWinner = async (winnerId) => {
@@ -282,6 +313,10 @@ const ScoreManagement = () => {
               isLive={selectedMatch.status === 'Live'}
               isMobile={isMobile}
               onPendingUpdateChange={setIsPendingSave}
+              onEndHalf={() => {
+                setMatchToEndHalf(selectedMatch._id);
+                setShowEndHalfConfirm(true);
+              }}
             />
           ) : selectedMatch.game.name.toUpperCase() === 'TABLE TENNIS' ? (
             <TableTennisScoreCard 
@@ -336,6 +371,19 @@ const ScoreManagement = () => {
               confirmColor="#FFD700"
               icon="warning"
               loading={endingMatch}
+            />
+          )}
+
+          {showEndHalfConfirm && (
+            <ConfirmDialog
+              title="End First Half"
+              message="End first half? Timer will reset for second half."
+              onConfirm={confirmEndHalf}
+              onCancel={() => setShowEndHalfConfirm(false)}
+              confirmText="End 1st Half"
+              confirmColor="#FFD700"
+              icon="warning"
+              loading={endingHalf}
             />
           )}
 
@@ -1363,7 +1411,7 @@ const TugOfWarScoreCard = ({ match, updateScore, setSelectedMatch, setMatches, a
 };
 
 // Kabaddi Score Card Component
-const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLive, isMobile = false, onPendingUpdateChange }) => {
+const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLive, isMobile = false, onPendingUpdateChange, onEndHalf }) => {
   const [scores, setScores] = useState({
     teamA: {
       raidPoints: 0,
@@ -1386,6 +1434,18 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
   const [lastMatchId, setLastMatchId] = useState(null); // Track match ID changes
   const [isEditing, setIsEditing] = useState(false); // Track edit mode for completed matches
   const [editedStatus, setEditedStatus] = useState(match.status); // Track edited status
+  
+  // Timer state
+  const [timer, setTimer] = useState({
+    minutes: 10,
+    seconds: 0,
+    centiseconds: 0,
+    isRunning: false,
+    isVisible: true
+  });
+  const [timerInterval, setTimerInterval] = useState(null);
+  const [currentHalf, setCurrentHalf] = useState(1);
+  const [halfTimeScores, setHalfTimeScores] = useState(null);
 
   // Load undo history from localStorage on mount
   useEffect(() => {
@@ -1444,6 +1504,161 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
       setLastMatchId(match._id);
     }
   }, [match._id, lastMatchId, match.result]);
+
+  // Load timer and half-time data from match
+  useEffect(() => {
+    if (match.result?.kabaddi) {
+      const kabaddiData = match.result.kabaddi;
+      if (kabaddiData.timer) {
+        // Ensure isVisible is always set (default to true if not present)
+        setTimer({
+          ...kabaddiData.timer,
+          isVisible: kabaddiData.timer.isVisible !== undefined ? kabaddiData.timer.isVisible : true
+        });
+      }
+      if (kabaddiData.currentHalf) {
+        setCurrentHalf(kabaddiData.currentHalf);
+      }
+      if (kabaddiData.halfTimeScores) {
+        setHalfTimeScores(kabaddiData.halfTimeScores);
+      }
+    }
+  }, [match.result]);
+
+  // Sync timer with server
+  const syncTimer = useCallback(async (newTimer) => {
+    try {
+      await axios.patch(
+        `${API_URL}/api/schedule/${match._id}/kabaddi/timer`,
+        newTimer,
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error('Error syncing timer:', error);
+    }
+  }, [match._id]);
+
+  // Spacebar to play/pause timer (desktop only)
+  useEffect(() => {
+    // Only enable on desktop (not mobile)
+    if (isMobile) return;
+
+    const handleKeyPress = (e) => {
+      // Check if not in an input/textarea
+      if (e.target.tagName !== 'INPUT' && 
+          e.target.tagName !== 'TEXTAREA' &&
+          !e.target.isContentEditable) {
+        
+        // Spacebar: Toggle timer
+        if (e.code === 'Space') {
+          e.preventDefault(); // Prevent page scroll
+          
+          // Toggle timer using the current state
+          setTimer(prev => {
+            const newTimer = { ...prev, isRunning: !prev.isRunning };
+            syncTimer(newTimer);
+            return newTimer;
+          });
+        }
+        
+        // S key: Sync timer
+        if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          syncTimer(timer);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isMobile, syncTimer, timer]);
+
+  // Timer countdown logic
+  useEffect(() => {
+    if (timer.isRunning) {
+      const interval = setInterval(() => {
+        setTimer(prev => {
+          let newCentiseconds = prev.centiseconds - 1;
+          let newSeconds = prev.seconds;
+          let newMinutes = prev.minutes;
+
+          if (newCentiseconds < 0) {
+            newCentiseconds = 99;
+            newSeconds -= 1;
+          }
+
+          if (newSeconds < 0) {
+            newSeconds = 59;
+            newMinutes -= 1;
+          }
+
+          // Stop at 0 and sync to DB
+          if (newMinutes < 0) {
+            clearInterval(interval);
+            const stoppedTimer = { minutes: 0, seconds: 0, centiseconds: 0, isRunning: false, isVisible: prev.isVisible };
+            // Sync to database immediately
+            syncTimer(stoppedTimer);
+            return stoppedTimer;
+          }
+
+          return {
+            minutes: newMinutes,
+            seconds: newSeconds,
+            centiseconds: newCentiseconds,
+            isRunning: true,
+            isVisible: prev.isVisible
+          };
+        });
+      }, 10); // Update every 10ms (centisecond)
+
+      setTimerInterval(interval);
+      return () => clearInterval(interval);
+    } else if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+  }, [timer.isRunning, syncTimer]);
+
+  const handleSetTimer = (field, value) => {
+    const newTimer = { ...timer, [field]: parseInt(value) || 0 };
+    setTimer(newTimer);
+    syncTimer(newTimer);
+  };
+
+  const handleStartTimer = () => {
+    const newTimer = { ...timer, isRunning: true };
+    setTimer(newTimer);
+    syncTimer(newTimer);
+  };
+
+  const handleStopTimer = () => {
+    const newTimer = { ...timer, isRunning: false };
+    setTimer(newTimer);
+    syncTimer(newTimer);
+  };
+
+  const handleResetTimer = () => {
+    const newTimer = { ...timer, minutes: 10, seconds: 0, centiseconds: 0, isRunning: false };
+    setTimer(newTimer);
+    syncTimer(newTimer);
+  };
+
+  const handleToggleTimerVisibility = () => {
+    const newTimer = { ...timer, isVisible: !timer.isVisible };
+    setTimer(newTimer);
+    syncTimer(newTimer);
+  };
+
+  const handleSyncTimer = () => {
+    // Force sync current timer state to all clients
+    syncTimer(timer);
+  };
+
+  const handleEndHalf = async () => {
+    if (currentHalf === 1 && onEndHalf) {
+      onEndHalf();
+    }
+  };
 
   const calculateTotal = (teamScores) => {
     return teamScores.raidPoints + teamScores.tacklePoints + teamScores.bonusPoints + teamScores.allOutPoints + teamScores.extraPoints;
@@ -1867,6 +2082,14 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
             {calculateTotal(scores.teamA)}
           </div>
           <div style={{ color: '#888', fontSize: isMobile ? '0.65rem' : '0.85rem', marginTop: '0.5rem' }}>Total Points</div>
+          {halfTimeScores?.teamAScore && (() => {
+            const total = calculateTotal(halfTimeScores.teamAScore);
+            return total > 0;
+          })() && (
+            <div style={{ color: '#666', fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: '0.25rem' }}>
+              HT: {calculateTotal(halfTimeScores.teamAScore)}
+            </div>
+          )}
         </div>
 
         {/* Team B Header */}
@@ -1903,8 +2126,263 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
             {calculateTotal(scores.teamB)}
           </div>
           <div style={{ color: '#888', fontSize: isMobile ? '0.65rem' : '0.85rem', marginTop: '0.5rem' }}>Total Points</div>
+          {halfTimeScores?.teamBScore && (() => {
+            const total = calculateTotal(halfTimeScores.teamBScore);
+            return total > 0;
+          })() && (
+            <div style={{ color: '#666', fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: '0.25rem' }}>
+              HT: {calculateTotal(halfTimeScores.teamBScore)}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Timer Section */}
+      {(isLive || isEditing) && (
+        <div style={{
+          background: 'rgba(255, 215, 0, 0.1)',
+          borderRadius: '0.75rem',
+          padding: isMobile ? '1rem' : '1.5rem',
+          marginBottom: isMobile ? '1rem' : '2rem',
+          border: '1px solid rgba(255, 215, 0, 0.2)'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            gap: isMobile ? '1rem' : '2rem'
+          }}>
+            {/* Half Indicator */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.85rem', marginBottom: '0.5rem' }}>
+                CURRENT HALF
+              </div>
+              <div style={{ color: '#FFD700', fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold' }}>
+                {currentHalf === 1 ? '1st Half' : '2nd Half'}
+              </div>
+              {timer.minutes === 0 && timer.seconds === 0 && timer.centiseconds === 0 && (
+                <div style={{ color: '#ff6b6b', fontSize: isMobile ? '0.7rem' : '0.85rem', marginTop: '0.5rem', fontWeight: 'bold' }}>
+                  LAST RAID
+                </div>
+              )}
+            </div>
+
+            {/* Timer Display and Controls */}
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.85rem', marginBottom: '0.5rem' }}>
+                TIMER
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: isMobile ? '0.5rem' : '1rem',
+                marginBottom: '1rem'
+              }}>
+                {/* Minutes */}
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={timer.minutes}
+                    onChange={(e) => handleSetTimer('minutes', e.target.value)}
+                    disabled={timer.isRunning}
+                    style={{
+                      width: isMobile ? '60px' : '80px',
+                      padding: isMobile ? '0.5rem' : '0.75rem',
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(255, 215, 0, 0.3)',
+                      borderRadius: '0.5rem',
+                      color: '#FFD700',
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ color: '#888', fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: '0.25rem' }}>MIN</div>
+                </div>
+                <span style={{ color: '#FFD700', fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold' }}>:</span>
+                {/* Seconds */}
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={timer.seconds}
+                    onChange={(e) => handleSetTimer('seconds', e.target.value)}
+                    disabled={timer.isRunning}
+                    style={{
+                      width: isMobile ? '60px' : '80px',
+                      padding: isMobile ? '0.5rem' : '0.75rem',
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(255, 215, 0, 0.3)',
+                      borderRadius: '0.5rem',
+                      color: '#FFD700',
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ color: '#888', fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: '0.25rem' }}>SEC</div>
+                </div>
+                <span style={{ color: '#FFD700', fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold' }}>:</span>
+                {/* Centiseconds */}
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={timer.centiseconds}
+                    onChange={(e) => handleSetTimer('centiseconds', e.target.value)}
+                    disabled={timer.isRunning}
+                    style={{
+                      width: isMobile ? '60px' : '80px',
+                      padding: isMobile ? '0.5rem' : '0.75rem',
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(255, 215, 0, 0.3)',
+                      borderRadius: '0.5rem',
+                      color: '#FFD700',
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ color: '#888', fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: '0.25rem' }}>CS</div>
+                </div>
+              </div>
+
+              {/* Timer Control Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* First Row: Start/Stop Button (Full Width) */}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {!timer.isRunning ? (
+                    <button
+                      onClick={handleStartTimer}
+                      style={{
+                        width: '100%',
+                        padding: '1rem 2rem',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        border: '2px solid rgba(34, 197, 94, 0.4)',
+                        borderRadius: '0.75rem',
+                        color: '#4ade80',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '1.25rem',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      ▶ Start
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStopTimer}
+                      style={{
+                        width: '100%',
+                        padding: '1rem 2rem',
+                        background: 'rgba(239, 68, 68, 0.2)',
+                        border: '2px solid rgba(239, 68, 68, 0.4)',
+                        borderRadius: '0.75rem',
+                        color: '#ff6b6b',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '1.25rem',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      ⏸ Stop
+                    </button>
+                  )}
+                </div>
+
+                {/* Second Row: Other Buttons */}
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={handleResetTimer}
+                    style={{
+                      flex: '1 1 auto',
+                      minWidth: isMobile ? '80px' : '100px',
+                      padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      borderRadius: '0.5rem',
+                      color: '#3b82f6',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: isMobile ? '0.8rem' : '1rem',
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    ↻ Reset
+                  </button>
+                  <button
+                    onClick={handleToggleTimerVisibility}
+                    style={{
+                      flex: '1 1 auto',
+                      minWidth: isMobile ? '80px' : '100px',
+                      padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
+                      background: timer.isVisible ? 'rgba(168, 85, 247, 0.2)' : 'rgba(107, 114, 128, 0.2)',
+                      border: `1px solid ${timer.isVisible ? 'rgba(168, 85, 247, 0.4)' : 'rgba(107, 114, 128, 0.4)'}`,
+                      borderRadius: '0.5rem',
+                      color: timer.isVisible ? '#a855f7' : '#9ca3af',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: isMobile ? '0.8rem' : '1rem',
+                      transition: 'all 0.3s'
+                    }}
+                    title={timer.isVisible ? 'Hide timer from clients' : 'Show timer to clients'}
+                  >
+                    {timer.isVisible ? '👁 Visible' : '👁‍🗨 Hidden'}
+                  </button>
+                  <button
+                    onClick={handleSyncTimer}
+                    style={{
+                      flex: '1 1 auto',
+                      minWidth: isMobile ? '80px' : '100px',
+                      padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
+                      background: 'rgba(14, 165, 233, 0.2)',
+                      border: '1px solid rgba(14, 165, 233, 0.4)',
+                      borderRadius: '0.5rem',
+                      color: '#0ea5e9',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: isMobile ? '0.8rem' : '1rem',
+                      transition: 'all 0.3s'
+                    }}
+                    title="Force sync timer to all clients"
+                  >
+                    Sync
+                  </button>
+                  {currentHalf === 1 && (
+                    <button
+                      onClick={handleEndHalf}
+                      style={{
+                        flex: '1 1 auto',
+                        minWidth: isMobile ? '100px' : '120px',
+                        padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
+                        background: 'rgba(234, 179, 8, 0.2)',
+                        border: '1px solid rgba(234, 179, 8, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#eab308',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: isMobile ? '0.8rem' : '1rem',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      End 1st Half
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Score Rows */}
       {isMobile ? (

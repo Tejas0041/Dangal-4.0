@@ -64,6 +64,33 @@ const scheduleSchema = new mongoose.Schema({
       allOutPoints: { type: Number, default: 0 },
       extraPoints: { type: Number, default: 0 }
     },
+    // Kabaddi timer and half-time tracking
+    kabaddi: {
+      timer: {
+        minutes: { type: Number, default: 0 },
+        seconds: { type: Number, default: 0 },
+        centiseconds: { type: Number, default: 0 },
+        isRunning: { type: Boolean, default: false },
+        isVisible: { type: Boolean, default: true }
+      },
+      currentHalf: { type: Number, default: 1, enum: [1, 2] },
+      halfTimeScores: {
+        teamAScore: {
+          raidPoints: { type: Number, default: 0 },
+          tacklePoints: { type: Number, default: 0 },
+          bonusPoints: { type: Number, default: 0 },
+          allOutPoints: { type: Number, default: 0 },
+          extraPoints: { type: Number, default: 0 }
+        },
+        teamBScore: {
+          raidPoints: { type: Number, default: 0 },
+          tacklePoints: { type: Number, default: 0 },
+          bonusPoints: { type: Number, default: 0 },
+          allOutPoints: { type: Number, default: 0 },
+          extraPoints: { type: Number, default: 0 }
+        }
+      }
+    },
     // Table Tennis specific scoring
     tableTennis: {
       games: [{

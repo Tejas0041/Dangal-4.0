@@ -245,6 +245,9 @@ export default function MatchDetail() {
   } | null>(null);
   const [showFireworks, setShowFireworks] = useState(false);
   const animationInProgress = useRef(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timerStateRef = useRef<{ minutes: number; seconds: number; centiseconds: number } | null>(null);
 
   // Use live scores hook for real-time updates
   const liveScores = useLiveScores();
@@ -592,6 +595,30 @@ export default function MatchDetail() {
       handleRoundWon(data);
     });
     socket.on('matchWon', handleMatchWon);
+    socket.on('timerUpdate', (data) => {
+      console.log('Timer update received:', data);
+      if (data.matchId === matchId) {
+        setMatch(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            result: {
+              ...prev.result,
+              kabaddi: {
+                ...prev.result?.kabaddi,
+                timer: data.timer
+              }
+            }
+          };
+        });
+      }
+    });
+    socket.on('halfEnded', (data) => {
+      if (data.matchId === matchId) {
+        // Match will be updated via matchUpdated event, no need to fetch
+        console.log('Half ended, waiting for matchUpdated event');
+      }
+    });
 
     return () => {
       console.log('MatchDetail: Cleaning up socket listeners for matchId:', matchId);
@@ -600,10 +627,136 @@ export default function MatchDetail() {
       socket.off('setWon', handleSetWon);
       socket.off('roundWon', handleRoundWon);
       socket.off('matchWon', handleMatchWon);
+      socket.off('timerUpdate');
+      socket.off('halfEnded');
       socket.emit('leave-scores');
       console.log('MatchDetail: Left live-scores room');
     };
   }, [matchId, handleMatchUpdate, handleScoreUpdate, handleSetWon, handleRoundWon, handleMatchWon]);
+
+  // Keyboard listener for fullscreen toggle (F key)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        setIsFullscreen(prev => !prev);
+      }
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isFullscreen]);
+
+  // Client-side timer countdown for Kabaddi
+  useEffect(() => {
+    if (match?.game.name.toUpperCase() === 'KABADDI' && match.result?.kabaddi?.timer?.isRunning) {
+      // Initialize timer state ref if not already set or if timer values changed from socket
+      const currentTimer = match.result.kabaddi.timer;
+      if (!timerStateRef.current || 
+          timerStateRef.current.minutes !== currentTimer.minutes ||
+          timerStateRef.current.seconds !== currentTimer.seconds ||
+          Math.abs(timerStateRef.current.centiseconds - currentTimer.centiseconds) > 5) {
+        timerStateRef.current = {
+          minutes: currentTimer.minutes,
+          seconds: currentTimer.seconds,
+          centiseconds: currentTimer.centiseconds
+        };
+      }
+
+      // Only create interval if one doesn't exist
+      if (!timerIntervalRef.current) {
+        // Start countdown
+        timerIntervalRef.current = setInterval(() => {
+          if (!timerStateRef.current) return;
+          
+          let newCentiseconds = timerStateRef.current.centiseconds - 1;
+          let newSeconds = timerStateRef.current.seconds;
+          let newMinutes = timerStateRef.current.minutes;
+
+          if (newCentiseconds < 0) {
+            newCentiseconds = 99;
+            newSeconds -= 1;
+          }
+
+          if (newSeconds < 0) {
+            newSeconds = 59;
+            newMinutes -= 1;
+          }
+
+          // Stop at 0
+          if (newMinutes < 0) {
+            if (timerIntervalRef.current) {
+              clearInterval(timerIntervalRef.current);
+              timerIntervalRef.current = null;
+            }
+            timerStateRef.current = { minutes: 0, seconds: 0, centiseconds: 0 };
+            setMatch(prev => {
+              if (!prev || !prev.result?.kabaddi?.timer) return prev;
+              return {
+                ...prev,
+                result: {
+                  ...prev.result,
+                  kabaddi: {
+                    ...prev.result.kabaddi,
+                    timer: {
+                      ...prev.result.kabaddi.timer,
+                      minutes: 0,
+                      seconds: 0,
+                      centiseconds: 0,
+                      isRunning: false
+                    }
+                  }
+                }
+              };
+            });
+            return;
+          }
+
+          // Update ref
+          timerStateRef.current = {
+            minutes: newMinutes,
+            seconds: newSeconds,
+            centiseconds: newCentiseconds
+          };
+
+          // Update state for display
+          setMatch(prev => {
+            if (!prev || !prev.result?.kabaddi?.timer) return prev;
+            return {
+              ...prev,
+              result: {
+                ...prev.result,
+                kabaddi: {
+                  ...prev.result.kabaddi,
+                  timer: {
+                    ...prev.result.kabaddi.timer,
+                    minutes: newMinutes,
+                    seconds: newSeconds,
+                    centiseconds: newCentiseconds,
+                    isRunning: true
+                  }
+                }
+              }
+            };
+          });
+        }, 10); // Update every 10ms (centisecond)
+      }
+
+      return () => {
+        // Don't clear interval on every render, only when component unmounts or timer stops
+      };
+    } else {
+      // Timer is not running, clear interval and ref
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      timerStateRef.current = null;
+    }
+  }, [match?.result?.kabaddi?.timer?.isRunning, match?.result?.kabaddi?.timer?.minutes, match?.result?.kabaddi?.timer?.seconds]);
 
   // Update match when live scores change
   useEffect(() => {
@@ -744,7 +897,7 @@ export default function MatchDetail() {
       )}
       
       <div className="relative z-10">
-        <Navbar />
+        {!isFullscreen && <Navbar />}
       
         <div className="container mx-auto px-4 py-8 mt-20">
         {/* Back Button */}
@@ -907,6 +1060,104 @@ export default function MatchDetail() {
               </div>
             </div>
           </div>
+
+          {/* Kabaddi Timer and Half-Time Scores */}
+          {match.game.name.toUpperCase() === 'KABADDI' && (
+            <div className="mt-8">
+              {/* Timer Display - Only for Live matches and when visible */}
+              {match.status === 'Live' && match.result?.kabaddi?.timer && match.result.kabaddi.timer.isVisible !== false && (
+                <div className="glass-card p-6 rounded-xl mb-6" style={{
+                  background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(255, 215, 0, 0.1) 100%)',
+                  border: '2px solid rgba(255, 215, 0, 0.3)',
+                  boxShadow: '0 8px 32px rgba(255, 215, 0, 0.2)'
+                }}>
+                  <div className="text-center">
+                    <p className="text-gray-400 text-sm mb-3 font-semibold tracking-wider">
+                      {match.result.kabaddi.currentHalf === 1 ? '1ST HALF' : '2ND HALF'}
+                    </p>
+                    <div className="flex items-center justify-center gap-1" style={{
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontSize: 'clamp(3rem, 8vw, 5rem)',
+                      fontWeight: 'bold',
+                      color: '#FFD700',
+                      textShadow: '0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3)',
+                      letterSpacing: '0.05em'
+                    }}>
+                      <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
+                        {String(match.result.kabaddi.timer.minutes).padStart(2, '0')}
+                      </span>
+                      <span style={{ opacity: 0.7 }}>:</span>
+                      <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
+                        {String(match.result.kabaddi.timer.seconds).padStart(2, '0')}
+                      </span>
+                      <span style={{ 
+                        fontSize: '0.6em', 
+                        opacity: 0.5,
+                        display: 'inline-block',
+                        minWidth: '0.5em'
+                      }}>:</span>
+                      <span style={{ 
+                        fontSize: '0.6em',
+                        opacity: 0.7,
+                        display: 'inline-block',
+                        minWidth: '1.2em',
+                        textAlign: 'center'
+                      }}>
+                        {String(match.result.kabaddi.timer.centiseconds).padStart(2, '0')}
+                      </span>
+                    </div>
+                    {match.result.kabaddi.timer.minutes === 0 && 
+                     match.result.kabaddi.timer.seconds === 0 && 
+                     match.result.kabaddi.timer.centiseconds === 0 && (
+                      <p className="text-red-500 font-bold text-xl mt-3 animate-pulse tracking-wider">
+                        ⚠ LAST RAID ⚠
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Half-Time Scores - Only if halfTimeScores exist and have non-zero values */}
+              {match.result?.kabaddi?.halfTimeScores && 
+               match.result.kabaddi.halfTimeScores.teamAScore && 
+               match.result.kabaddi.halfTimeScores.teamBScore && 
+               (() => {
+                 const htA = match.result.kabaddi.halfTimeScores.teamAScore;
+                 const htB = match.result.kabaddi.halfTimeScores.teamBScore;
+                 const totalA = (htA.raidPoints || 0) + (htA.tacklePoints || 0) + (htA.bonusPoints || 0) + 
+                                (htA.allOutPoints || 0) + (htA.extraPoints || 0);
+                 const totalB = (htB.raidPoints || 0) + (htB.tacklePoints || 0) + (htB.bonusPoints || 0) + 
+                                (htB.allOutPoints || 0) + (htB.extraPoints || 0);
+                 return totalA > 0 || totalB > 0; // Only show if at least one team has non-zero half-time score
+               })() && (
+                <div className="glass-card p-6 rounded-xl">
+                  <h3 className="text-xl font-bold text-primary mb-4 text-center">Half-Time Score</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <p className="text-gray-400 text-sm mb-2">{getTeamDisplayName(match.teamA)}</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {(() => {
+                          const ht = match.result.kabaddi.halfTimeScores.teamAScore;
+                          return (ht.raidPoints || 0) + (ht.tacklePoints || 0) + (ht.bonusPoints || 0) + 
+                                 (ht.allOutPoints || 0) + (ht.extraPoints || 0);
+                        })()}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-gray-400 text-sm mb-2">{getTeamDisplayName(match.teamB)}</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {(() => {
+                          const ht = match.result.kabaddi.halfTimeScores.teamBScore;
+                          return (ht.raidPoints || 0) + (ht.tacklePoints || 0) + (ht.bonusPoints || 0) + 
+                                 (ht.allOutPoints || 0) + (ht.extraPoints || 0);
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Table Tennis Current Game Score */}
           {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && match.result.tableTennis.games.length > 0 && match.status === 'Live' && (
@@ -1164,6 +1415,8 @@ export default function MatchDetail() {
             <p className="text-xl font-semibold text-primary break-words">{match.venue}</p>
           </div>
         </motion.div>
+
+
 
         {/* Detailed Scoring */}
         {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && (

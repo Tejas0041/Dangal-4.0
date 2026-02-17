@@ -419,7 +419,23 @@ const ScheduleManagement = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setFormData({
+                game: '',
+                round: 'League Stage',
+                teamA: '',
+                teamB: '',
+                date: null,
+                time: null,
+                venue: '',
+                status: 'Scheduled',
+                matchNumber: matches.length + 1
+              });
+              setEditingMatch(null);
+              setTeamASearch('');
+              setTeamBSearch('');
+              setShowModal(true);
+            }}
             style={{
               padding: '0.875rem 1.75rem',
               background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
@@ -1097,44 +1113,31 @@ const ScheduleManagement = () => {
                   </svg>
                   {editingMatch ? 'Edit Match' : 'Create New Match'}
                 </h2>
-                {editingMatch ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label style={{ color: '#FFD700', fontSize: '0.85rem', fontWeight: '600' }}>Match #</label>
-                    <input
-                      type="number"
-                      value={formData.matchNumber || ''}
-                      onChange={(e) => setFormData({ ...formData, matchNumber: parseInt(e.target.value) || null })}
-                      min="1"
-                      required
-                      className="match-number-input"
-                      style={{
-                        width: '70px',
-                        padding: '0.5rem 0.75rem',
-                        background: 'transparent',
-                        border: '2px solid #FFD700',
-                        borderRadius: '0.75rem',
-                        color: '#FFD700',
-                        fontSize: '0.9rem',
-                        fontWeight: '700',
-                        textAlign: 'center',
-                        outline: 'none',
-                        boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)'
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div style={{
-                    padding: '0.5rem 1rem',
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                    borderRadius: '0.75rem',
-                    color: '#000',
-                    fontSize: '0.9rem',
-                    fontWeight: '700',
-                    boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)'
-                  }}>
-                    Match {String(matches.length + 1).padStart(2, '0')}
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ color: '#FFD700', fontSize: '0.85rem', fontWeight: '600' }}>Match #</label>
+                  <input
+                    type="number"
+                    value={formData.matchNumber || ''}
+                    onChange={(e) => setFormData({ ...formData, matchNumber: parseInt(e.target.value) || null })}
+                    placeholder={String(matches.length + 1)}
+                    min="1"
+                    required
+                    className="match-number-input"
+                    style={{
+                      width: '70px',
+                      padding: '0.5rem 0.75rem',
+                      background: 'transparent',
+                      border: '2px solid #FFD700',
+                      borderRadius: '0.75rem',
+                      color: '#FFD700',
+                      fontSize: '0.9rem',
+                      fontWeight: '700',
+                      textAlign: 'center',
+                      outline: 'none',
+                      boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)'
+                    }}
+                  />
+                </div>
               </div>
 
               <form onSubmit={handleSubmit}>

@@ -249,6 +249,25 @@ export default function Scores() {
     // Socket listeners
     socket.on('matchUpdated', handleMatchUpdate);
     socket.on('scoreUpdate', handleScoreUpdate);
+    socket.on('timerUpdate', (data) => {
+      // Update timer for the specific match
+      setLiveMatches(prev => prev.map(m => 
+        m._id === data.matchId ? {
+          ...m,
+          result: {
+            ...m.result,
+            kabaddi: {
+              ...m.result?.kabaddi,
+              timer: data.timer
+            }
+          }
+        } : m
+      ));
+    });
+    socket.on('halfEnded', () => {
+      // Match will be updated via matchUpdated event, no need to fetch
+      console.log('Half ended, waiting for matchUpdated event');
+    });
 
     // Log when events are received
     socket.on('matchUpdated', (match) => {
@@ -258,6 +277,8 @@ export default function Scores() {
     return () => {
       socket.off('matchUpdated', handleMatchUpdate);
       socket.off('scoreUpdate', handleScoreUpdate);
+      socket.off('timerUpdate');
+      socket.off('halfEnded');
       socket.emit('leave-scores');
       console.log('Scores page: Left live-scores room');
     };
@@ -565,6 +586,34 @@ export default function Scores() {
                           </div>
                         </div>
                         
+                        {/* Kabaddi Half-Time Scores - Only if halfTimeScores exist and have non-zero values */}
+                        {match.game.name.toUpperCase() === 'KABADDI' && 
+                         match.result?.kabaddi?.halfTimeScores?.teamAScore && 
+                         match.result?.kabaddi?.halfTimeScores?.teamBScore && 
+                         (() => {
+                           const htA = match.result.kabaddi.halfTimeScores.teamAScore;
+                           const htB = match.result.kabaddi.halfTimeScores.teamBScore;
+                           const totalA = (htA.raidPoints || 0) + (htA.tacklePoints || 0) + (htA.bonusPoints || 0) + 
+                                          (htA.allOutPoints || 0) + (htA.extraPoints || 0);
+                           const totalB = (htB.raidPoints || 0) + (htB.tacklePoints || 0) + (htB.bonusPoints || 0) + 
+                                          (htB.allOutPoints || 0) + (htB.extraPoints || 0);
+                           return totalA > 0 || totalB > 0;
+                         })() && (
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                            <span>HT: {(() => {
+                              const ht = match.result.kabaddi.halfTimeScores.teamAScore;
+                              return (ht.raidPoints || 0) + (ht.tacklePoints || 0) + (ht.bonusPoints || 0) + 
+                                     (ht.allOutPoints || 0) + (ht.extraPoints || 0);
+                            })()}</span>
+                            <span>-</span>
+                            <span>{(() => {
+                              const ht = match.result.kabaddi.halfTimeScores.teamBScore;
+                              return (ht.raidPoints || 0) + (ht.tacklePoints || 0) + (ht.bonusPoints || 0) + 
+                                     (ht.allOutPoints || 0) + (ht.extraPoints || 0);
+                            })()}</span>
+                          </div>
+                        )}
+                        
                         {/* Table Tennis Game Details */}
                         {match.game.name.toUpperCase() === 'TABLE TENNIS' && match.result?.tableTennis?.games && (
                           <div className="flex items-center gap-1 text-xs mt-1">
@@ -596,6 +645,37 @@ export default function Scores() {
                                 </div>
                               );
                             })()}
+                          </div>
+                        )}
+
+                        {/* Kabaddi Timer */}
+                        {match.game.name.toUpperCase() === 'KABADDI' && match.result?.kabaddi?.timer && match.result.kabaddi.timer.isVisible !== false && (
+                          <div className="flex flex-col items-center gap-1 text-xs mt-1">
+                            <span className="text-gray-400 text-[10px]">
+                              {match.result.kabaddi.currentHalf === 1 ? '1st Half' : '2nd Half'}
+                            </span>
+                            <span className="px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded text-yellow-500 font-bold" style={{
+                              fontFamily: '"Courier New", Courier, monospace',
+                              fontSize: '0.75rem',
+                              letterSpacing: '0.05em'
+                            }}>
+                              <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
+                                {String(match.result.kabaddi.timer.minutes).padStart(2, '0')}
+                              </span>
+                              :
+                              <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
+                                {String(match.result.kabaddi.timer.seconds).padStart(2, '0')}
+                              </span>
+                              <span style={{ fontSize: '0.7em', opacity: 0.7 }}>:</span>
+                              <span style={{ fontSize: '0.7em', opacity: 0.8, display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
+                                {String(match.result.kabaddi.timer.centiseconds).padStart(2, '0')}
+                              </span>
+                            </span>
+                            {match.result.kabaddi.timer.minutes === 0 && 
+                             match.result.kabaddi.timer.seconds === 0 && 
+                             match.result.kabaddi.timer.centiseconds === 0 && (
+                              <span className="text-red-500 font-bold text-[10px] animate-pulse">LAST RAID</span>
+                            )}
                           </div>
                         )}
                       </div>

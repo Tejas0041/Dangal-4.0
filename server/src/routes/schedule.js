@@ -72,19 +72,22 @@ router.get('/:id', async (req, res) => {
 // Create new match (Admin only)
 router.post('/', authenticateAdmin, async (req, res) => {
   try {
-    const { game, teamA, teamB, date, time, venue, round, status, matchType } = req.body;
+    const { game, teamA, teamB, date, time, venue, round, status, matchType, matchNumber } = req.body;
 
     // Validate teams are different
     if (teamA === teamB) {
       return res.status(400).json({ message: 'Teams must be different' });
     }
 
-    // Get the highest match number and increment
-    const lastMatch = await Schedule.findOne().sort({ matchNumber: -1 });
-    const matchNumber = lastMatch ? lastMatch.matchNumber + 1 : 1;
+    // Use provided matchNumber or get the highest match number and increment
+    let finalMatchNumber = matchNumber;
+    if (!finalMatchNumber) {
+      const lastMatch = await Schedule.findOne().sort({ matchNumber: -1 });
+      finalMatchNumber = lastMatch ? lastMatch.matchNumber + 1 : 1;
+    }
 
     const matchData = {
-      matchNumber,
+      matchNumber: finalMatchNumber,
       game,
       teamA,
       teamB,
@@ -831,6 +834,118 @@ router.get('/date/:date', async (req, res) => {
     res.json(matches);
   } catch (error) {
     console.error('Error fetching matches:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Kabaddi timer control endpoints
+router.patch('/:id/kabaddi/timer', authenticateAdmin, async (req, res) => {
+  try {
+    const { minutes, seconds, centiseconds, isRunning, isVisible } = req.body;
+
+    // Emit socket event IMMEDIATELY for instant client update
+    const io = req.app.get('io');
+    const timerData = {
+      minutes: minutes !== undefined ? minutes : 0,
+      seconds: seconds !== undefined ? seconds : 0,
+      centiseconds: centiseconds !== undefined ? centiseconds : 0,
+      isRunning: isRunning !== undefined ? isRunning : false,
+      isVisible: isVisible !== undefined ? isVisible : true
+    };
+    
+    if (io) {
+      io.to('live-scores').emit('timerUpdate', {
+        matchId: req.params.id,
+        timer: timerData
+      });
+    }
+
+    // Update database asynchronously (don't wait for it)
+    const updateData = {};
+    if (minutes !== undefined) updateData['result.kabaddi.timer.minutes'] = minutes;
+    if (seconds !== undefined) updateData['result.kabaddi.timer.seconds'] = seconds;
+    if (centiseconds !== undefined) updateData['result.kabaddi.timer.centiseconds'] = centiseconds;
+    if (isRunning !== undefined) updateData['result.kabaddi.timer.isRunning'] = isRunning;
+    if (isVisible !== undefined) updateData['result.kabaddi.timer.isVisible'] = isVisible;
+
+    // Fire and forget - update DB in background
+    Schedule.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).catch(err => console.error('Error updating timer in DB:', err));
+
+    // Respond immediately
+    res.json({ success: true, timer: timerData });
+  } catch (error) {
+    console.error('Error updating timer:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// End half and save half-time scores
+router.patch('/:id/kabaddi/end-half', authenticateAdmin, async (req, res) => {
+  try {
+    const match = await Schedule.findById(req.params.id);
+    if (!match) {
+      return res.status(404).json({ message: 'Match not found' });
+    }
+
+    const currentHalf = match.result?.kabaddi?.currentHalf || 1;
+    
+    if (currentHalf === 1) {
+      // Save current scores as half-time scores and move to second half
+      const updateData = {
+        'result.kabaddi.halfTimeScores.teamAScore': match.result?.teamAScore || {},
+        'result.kabaddi.halfTimeScores.teamBScore': match.result?.teamBScore || {},
+        'result.kabaddi.currentHalf': 2,
+        'result.kabaddi.timer.minutes': 10,
+        'result.kabaddi.timer.seconds': 0,
+        'result.kabaddi.timer.centiseconds': 0,
+        'result.kabaddi.timer.isRunning': false
+      };
+
+      const updatedMatch = await Schedule.findByIdAndUpdate(
+        req.params.id,
+        updateData,
+        { new: true, runValidators: true }
+      )
+        .populate('game', 'name venue image icon')
+        .populate({
+          path: 'teamA',
+          select: 'teamName secondTeamName hallId',
+          populate: {
+            path: 'hallId',
+            select: 'name image'
+          }
+        })
+        .populate({
+          path: 'teamB',
+          select: 'teamName secondTeamName hallId',
+          populate: {
+            path: 'hallId',
+            select: 'name image'
+          }
+        })
+        .populate('result.winner', 'teamName secondTeamName hallId');
+
+      // Emit socket event
+      const io = req.app.get('io');
+      if (io) {
+        io.to('live-scores').emit('halfEnded', {
+          matchId: updatedMatch._id.toString(),
+          half: 1
+        });
+        io.to('live-scores').emit('matchUpdated', updatedMatch);
+      }
+
+      res.json(updatedMatch);
+    } else {
+      // Second half - this should trigger match completion
+      res.status(400).json({ message: 'Use match completion endpoint for second half' });
+    }
+  } catch (error) {
+    console.error('Error ending half:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
