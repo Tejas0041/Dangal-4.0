@@ -1061,62 +1061,9 @@ export default function MatchDetail() {
             </div>
           </div>
 
-          {/* Kabaddi Timer and Half-Time Scores */}
+          {/* Kabaddi Half-Time Scores */}
           {match.game.name.toUpperCase() === 'KABADDI' && (
             <div className="mt-8">
-              {/* Timer Display - Only for Live matches and when visible */}
-              {match.status === 'Live' && match.result?.kabaddi?.timer && match.result.kabaddi.timer.isVisible !== false && (
-                <div className="glass-card p-6 rounded-xl mb-6" style={{
-                  background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(255, 215, 0, 0.1) 100%)',
-                  border: '2px solid rgba(255, 215, 0, 0.3)',
-                  boxShadow: '0 8px 32px rgba(255, 215, 0, 0.2)'
-                }}>
-                  <div className="text-center">
-                    <p className="text-gray-400 text-sm mb-3 font-semibold tracking-wider">
-                      {match.result.kabaddi.currentHalf === 1 ? '1ST HALF' : '2ND HALF'}
-                    </p>
-                    <div className="flex items-center justify-center gap-1" style={{
-                      fontFamily: '"Courier New", Courier, monospace',
-                      fontSize: 'clamp(3rem, 8vw, 5rem)',
-                      fontWeight: 'bold',
-                      color: '#FFD700',
-                      textShadow: '0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3)',
-                      letterSpacing: '0.05em'
-                    }}>
-                      <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
-                        {String(match.result.kabaddi.timer.minutes).padStart(2, '0')}
-                      </span>
-                      <span style={{ opacity: 0.7 }}>:</span>
-                      <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
-                        {String(match.result.kabaddi.timer.seconds).padStart(2, '0')}
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.6em', 
-                        opacity: 0.5,
-                        display: 'inline-block',
-                        minWidth: '0.5em'
-                      }}>:</span>
-                      <span style={{ 
-                        fontSize: '0.6em',
-                        opacity: 0.7,
-                        display: 'inline-block',
-                        minWidth: '1.2em',
-                        textAlign: 'center'
-                      }}>
-                        {String(match.result.kabaddi.timer.centiseconds).padStart(2, '0')}
-                      </span>
-                    </div>
-                    {match.result.kabaddi.timer.minutes === 0 && 
-                     match.result.kabaddi.timer.seconds === 0 && 
-                     match.result.kabaddi.timer.centiseconds === 0 && (
-                      <p className="text-red-500 font-bold text-xl mt-3 animate-pulse tracking-wider">
-                        ⚠ LAST RAID ⚠
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Half-Time Scores - Only if halfTimeScores exist and have non-zero values */}
               {match.result?.kabaddi?.halfTimeScores && 
                match.result.kabaddi.halfTimeScores.teamAScore && 

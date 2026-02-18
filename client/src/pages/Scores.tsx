@@ -221,6 +221,25 @@ interface Match {
       gamesWonA: number;
       gamesWonB: number;
     };
+    kabaddi?: {
+      halfTimeScores?: {
+        teamAScore?: {
+          raidPoints?: number;
+          tacklePoints?: number;
+          bonusPoints?: number;
+          allOutPoints?: number;
+          extraPoints?: number;
+        };
+        teamBScore?: {
+          raidPoints?: number;
+          tacklePoints?: number;
+          bonusPoints?: number;
+          allOutPoints?: number;
+          extraPoints?: number;
+        };
+      };
+      timer?: any;
+    };
   };
 }
 
@@ -645,37 +664,6 @@ export default function Scores() {
                                 </div>
                               );
                             })()}
-                          </div>
-                        )}
-
-                        {/* Kabaddi Timer */}
-                        {match.game.name.toUpperCase() === 'KABADDI' && match.result?.kabaddi?.timer && match.result.kabaddi.timer.isVisible !== false && (
-                          <div className="flex flex-col items-center gap-1 text-xs mt-1">
-                            <span className="text-gray-400 text-[10px]">
-                              {match.result.kabaddi.currentHalf === 1 ? '1st Half' : '2nd Half'}
-                            </span>
-                            <span className="px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded text-yellow-500 font-bold" style={{
-                              fontFamily: '"Courier New", Courier, monospace',
-                              fontSize: '0.75rem',
-                              letterSpacing: '0.05em'
-                            }}>
-                              <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
-                                {String(match.result.kabaddi.timer.minutes).padStart(2, '0')}
-                              </span>
-                              :
-                              <span style={{ display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
-                                {String(match.result.kabaddi.timer.seconds).padStart(2, '0')}
-                              </span>
-                              <span style={{ fontSize: '0.7em', opacity: 0.7 }}>:</span>
-                              <span style={{ fontSize: '0.7em', opacity: 0.8, display: 'inline-block', minWidth: '1.2em', textAlign: 'center' }}>
-                                {String(match.result.kabaddi.timer.centiseconds).padStart(2, '0')}
-                              </span>
-                            </span>
-                            {match.result.kabaddi.timer.minutes === 0 && 
-                             match.result.kabaddi.timer.seconds === 0 && 
-                             match.result.kabaddi.timer.centiseconds === 0 && (
-                              <span className="text-red-500 font-bold text-[10px] animate-pulse">LAST RAID</span>
-                            )}
                           </div>
                         )}
                       </div>

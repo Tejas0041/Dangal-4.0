@@ -27,6 +27,7 @@ router.get('/settings', async (req, res) => {
       registrationOpen: settings.registrationOpen || false,
       matchesVisible: settings.matchesVisible || false,
       scoresVisible: settings.scoresVisible || false,
+      kabaddiTimerRate: settings.kabaddiTimerRate || 1.0,
     });
   } catch (error) {
     console.error('Get event settings error:', error);
@@ -167,6 +168,36 @@ router.post('/scores/toggle', authenticateAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Toggle scores visibility error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PATCH /api/event/timer-rate
+// @desc    Update Kabaddi timer rate
+// @access  Private (Admin)
+router.patch('/timer-rate', authenticateAdmin, async (req, res) => {
+  try {
+    const { kabaddiTimerRate } = req.body;
+
+    if (kabaddiTimerRate < 0.5 || kabaddiTimerRate > 2.0) {
+      return res.status(400).json({ message: 'Timer rate must be between 0.5 and 2.0' });
+    }
+
+    let settings = await EventSettings.findOne({ isActive: true });
+    
+    if (!settings) {
+      return res.status(404).json({ message: 'Event settings not found' });
+    }
+
+    settings.kabaddiTimerRate = kabaddiTimerRate;
+    await settings.save();
+
+    res.json({
+      message: 'Timer rate updated successfully',
+      kabaddiTimerRate: settings.kabaddiTimerRate,
+    });
+  } catch (error) {
+    console.error('Update timer rate error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

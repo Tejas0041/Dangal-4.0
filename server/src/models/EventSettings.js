@@ -26,6 +26,12 @@ const eventSettingsSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    kabaddiTimerRate: {
+      type: Number,
+      default: 1.0,
+      min: 0.5,
+      max: 2.0,
+    },
   },
   {
     timestamps: true,

@@ -1446,6 +1446,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
   const [timerInterval, setTimerInterval] = useState(null);
   const [currentHalf, setCurrentHalf] = useState(1);
   const [halfTimeScores, setHalfTimeScores] = useState(null);
+  const [timerRate, setTimerRate] = useState(1.0);
 
   // Load undo history from localStorage on mount
   useEffect(() => {
@@ -1458,6 +1459,19 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
       }
     }
   }, [match._id]);
+
+  // Fetch timer rate from event settings
+  useEffect(() => {
+    const fetchTimerRate = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/event/settings`, { withCredentials: true });
+        setTimerRate(response.data.kabaddiTimerRate || 1.0);
+      } catch (error) {
+        console.error('Error fetching timer rate:', error);
+      }
+    };
+    fetchTimerRate();
+  }, []);
 
   // Save undo history to localStorage whenever it changes
   useEffect(() => {
@@ -1538,6 +1552,13 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
     }
   }, [match._id]);
 
+  // Timer rate visibility state
+  const [showTimerRate, setShowTimerRate] = useState(false);
+  
+  // Debounce timer for rate updates
+  const [rateUpdateTimeout, setRateUpdateTimeout] = useState(null);
+  const [pendingRateUpdate, setPendingRateUpdate] = useState(null);
+
   // Spacebar to play/pause timer (desktop only)
   useEffect(() => {
     // Only enable on desktop (not mobile)
@@ -1561,21 +1582,115 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
           });
         }
         
-        // S key: Sync timer
+        // S key: Sync timer and refetch timer rate
         if (e.key === 's' || e.key === 'S') {
           e.preventDefault();
           syncTimer(timer);
+          
+          // Refetch timer rate
+          axios.get(`${API_URL}/api/event/settings`, { withCredentials: true })
+            .then(response => {
+              setTimerRate(response.data.kabaddiTimerRate || 1.0);
+            })
+            .catch(error => {
+              console.error('Error fetching timer rate:', error);
+            });
+        }
+        
+        // E key: Increase timer rate by 0.01
+        if (e.key === 'e' || e.key === 'E') {
+          e.preventDefault();
+          setTimerRate(prev => {
+            const newRate = Math.min(2.0, Math.round((prev + 0.01) * 100) / 100);
+            
+            // Clear existing timeout
+            if (rateUpdateTimeout) {
+              clearTimeout(rateUpdateTimeout);
+            }
+            
+            // Set pending update
+            setPendingRateUpdate(newRate);
+            
+            // Debounce DB update by 400ms
+            const timeout = setTimeout(() => {
+              axios.patch(`${API_URL}/api/event/timer-rate`, { kabaddiTimerRate: newRate }, { withCredentials: true })
+                .catch(error => console.error('Error updating timer rate:', error));
+              setPendingRateUpdate(null);
+            }, 400);
+            
+            setRateUpdateTimeout(timeout);
+            return newRate;
+          });
+        }
+        
+        // D key: Decrease timer rate by 0.01
+        if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault();
+          setTimerRate(prev => {
+            const newRate = Math.max(0.5, Math.round((prev - 0.01) * 100) / 100);
+            
+            // Clear existing timeout
+            if (rateUpdateTimeout) {
+              clearTimeout(rateUpdateTimeout);
+            }
+            
+            // Set pending update
+            setPendingRateUpdate(newRate);
+            
+            // Debounce DB update by 400ms
+            const timeout = setTimeout(() => {
+              axios.patch(`${API_URL}/api/event/timer-rate`, { kabaddiTimerRate: newRate }, { withCredentials: true })
+                .catch(error => console.error('Error updating timer rate:', error));
+              setPendingRateUpdate(null);
+            }, 400);
+            
+            setRateUpdateTimeout(timeout);
+            return newRate;
+          });
+        }
+        
+        // R key: Reset timer rate to 1.0
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          setTimerRate(1.0);
+          
+          // Clear any pending updates
+          if (rateUpdateTimeout) {
+            clearTimeout(rateUpdateTimeout);
+          }
+          setPendingRateUpdate(null);
+          
+          // Update DB immediately
+          axios.patch(`${API_URL}/api/event/timer-rate`, { kabaddiTimerRate: 1.0 }, { withCredentials: true })
+            .catch(error => console.error('Error resetting timer rate:', error));
+        }
+        
+        // H key: Toggle timer rate visibility
+        if (e.key === 'h' || e.key === 'H') {
+          e.preventDefault();
+          setShowTimerRate(prev => !prev);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isMobile, syncTimer, timer]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      // Cleanup timeout on unmount
+      if (rateUpdateTimeout) {
+        clearTimeout(rateUpdateTimeout);
+      }
+    };
+  }, [isMobile, syncTimer, timer, rateUpdateTimeout]);
 
   // Timer countdown logic
   useEffect(() => {
     if (timer.isRunning) {
+      // Calculate interval based on timer rate
+      // If rate is 0.95, timer runs 5% faster (interval = 10 * 0.95 = 9.5ms)
+      // If rate is 1.05, timer runs 5% slower (interval = 10 * 1.05 = 10.5ms)
+      const intervalDuration = 10 * timerRate;
+      
       const interval = setInterval(() => {
         setTimer(prev => {
           let newCentiseconds = prev.centiseconds - 1;
@@ -1609,7 +1724,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
             isVisible: prev.isVisible
           };
         });
-      }, 10); // Update every 10ms (centisecond)
+      }, intervalDuration);
 
       setTimerInterval(interval);
       return () => clearInterval(interval);
@@ -1617,7 +1732,7 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
       clearInterval(timerInterval);
       setTimerInterval(null);
     }
-  }, [timer.isRunning, syncTimer]);
+  }, [timer.isRunning, timerRate, syncTimer]);
 
   const handleSetTimer = (field, value) => {
     const newTimer = { ...timer, [field]: parseInt(value) || 0 };
@@ -1649,9 +1764,17 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
     syncTimer(newTimer);
   };
 
-  const handleSyncTimer = () => {
+  const handleSyncTimer = async () => {
     // Force sync current timer state to all clients
     syncTimer(timer);
+    
+    // Also refetch timer rate from event settings
+    try {
+      const response = await axios.get(`${API_URL}/api/event/settings`, { withCredentials: true });
+      setTimerRate(response.data.kabaddiTimerRate || 1.0);
+    } catch (error) {
+      console.error('Error fetching timer rate:', error);
+    }
   };
 
   const handleEndHalf = async () => {
@@ -2319,44 +2442,27 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
                   >
                     ↻ Reset
                   </button>
-                  <button
-                    onClick={handleToggleTimerVisibility}
-                    style={{
-                      flex: '1 1 auto',
-                      minWidth: isMobile ? '80px' : '100px',
-                      padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
-                      background: timer.isVisible ? 'rgba(168, 85, 247, 0.2)' : 'rgba(107, 114, 128, 0.2)',
-                      border: `1px solid ${timer.isVisible ? 'rgba(168, 85, 247, 0.4)' : 'rgba(107, 114, 128, 0.4)'}`,
-                      borderRadius: '0.5rem',
-                      color: timer.isVisible ? '#a855f7' : '#9ca3af',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: isMobile ? '0.8rem' : '1rem',
-                      transition: 'all 0.3s'
-                    }}
-                    title={timer.isVisible ? 'Hide timer from clients' : 'Show timer to clients'}
-                  >
-                    {timer.isVisible ? '👁 Visible' : '👁‍🗨 Hidden'}
-                  </button>
-                  <button
-                    onClick={handleSyncTimer}
-                    style={{
-                      flex: '1 1 auto',
-                      minWidth: isMobile ? '80px' : '100px',
-                      padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
-                      background: 'rgba(14, 165, 233, 0.2)',
-                      border: '1px solid rgba(14, 165, 233, 0.4)',
-                      borderRadius: '0.5rem',
-                      color: '#0ea5e9',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: isMobile ? '0.8rem' : '1rem',
-                      transition: 'all 0.3s'
-                    }}
-                    title="Force sync timer to all clients"
-                  >
-                    Sync
-                  </button>
+                  {isMobile && (
+                    <button
+                      onClick={handleSyncTimer}
+                      style={{
+                        flex: '1 1 auto',
+                        minWidth: '80px',
+                        padding: '0.5rem 1rem',
+                        background: 'rgba(14, 165, 233, 0.2)',
+                        border: '1px solid rgba(14, 165, 233, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#0ea5e9',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.8rem',
+                        transition: 'all 0.3s'
+                      }}
+                      title="Force sync timer to all clients"
+                    >
+                      Sync
+                    </button>
+                  )}
                   {currentHalf === 1 && (
                     <button
                       onClick={handleEndHalf}
@@ -2748,6 +2854,20 @@ const KabaddiScoreCard = ({ match, updateScore, endMatch, getTeamFullName, isLiv
               </div>
             ))}
           </div>
+        </div>
+      )}
+      
+      {/* Timer Rate Display (toggle with 'H' key) */}
+      {showTimerRate && (
+        <div style={{
+          marginTop: '1rem',
+          textAlign: 'center',
+          color: '#FFD700',
+          fontSize: '0.75rem',
+          fontWeight: 'bold',
+          fontFamily: 'monospace'
+        }}>
+          {timerRate.toFixed(2)}
         </div>
       )}
     </div>

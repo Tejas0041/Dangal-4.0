@@ -14,6 +14,8 @@ const Dashboard = () => {
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const [matchesVisible, setMatchesVisible] = useState(false);
   const [scoresVisible, setScoresVisible] = useState(false);
+  const [kabaddiTimerRate, setKabaddiTimerRate] = useState(1.0);
+  const [loadingTimerRate, setLoadingTimerRate] = useState(false);
   const [loadingToggle, setLoadingToggle] = useState(false);
   const [loadingMatchesToggle, setLoadingMatchesToggle] = useState(false);
   const [loadingScoresToggle, setLoadingScoresToggle] = useState(false);
@@ -37,6 +39,7 @@ const Dashboard = () => {
       setRegistrationOpen(settingsRes.data.registrationOpen || false);
       setMatchesVisible(settingsRes.data.matchesVisible || false);
       setScoresVisible(settingsRes.data.scoresVisible || false);
+      setKabaddiTimerRate(settingsRes.data.kabaddiTimerRate || 1.0);
       
       // Count active (Live) matches
       const activeMatches = matchesRes.data.filter(m => m.status === 'Live');
@@ -94,6 +97,23 @@ const Dashboard = () => {
       setToast({ message: 'Failed to toggle scores visibility', type: 'error' });
     } finally {
       setLoadingScoresToggle(false);
+    }
+  };
+
+  const handleTimerRateChange = async (newRate) => {
+    setLoadingTimerRate(true);
+    try {
+      const response = await axios.patch(`${API_URL}/api/event/timer-rate`, 
+        { kabaddiTimerRate: newRate },
+        { withCredentials: true }
+      );
+      setKabaddiTimerRate(response.data.kabaddiTimerRate);
+      setToast({ message: 'Timer rate updated successfully', type: 'success' });
+    } catch (err) {
+      console.error('Update timer rate error:', err);
+      setToast({ message: 'Failed to update timer rate', type: 'error' });
+    } finally {
+      setLoadingTimerRate(false);
     }
   };
 
@@ -575,6 +595,120 @@ const Dashboard = () => {
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
                 Show Scores
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Kabaddi Timer Rate Control */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.1) 100%)',
+          border: '2px solid #3B82F6',
+          borderRadius: '1rem',
+          padding: '1.5rem',
+          boxShadow: '0 4px 20px rgba(59,130,246,0.2)',
+        }}>
+          <h3 style={{ 
+            fontSize: '1.25rem', 
+            marginBottom: '0.5rem', 
+            color: '#3B82F6',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Kabaddi Timer Speed
+          </h3>
+          <p style={{ 
+            color: '#aaa', 
+            fontSize: '0.9rem', 
+            marginBottom: '0.75rem',
+          }}>
+            Adjust the timer speed rate. 1.0 = normal speed, 0.95 = 5% faster, 1.05 = 5% slower.
+          </p>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '1rem',
+          }}>
+            <label style={{ color: '#aaa', fontSize: '0.9rem', minWidth: '80px' }}>
+              Rate: {kabaddiTimerRate.toFixed(2)}x
+            </label>
+            <input
+              type="range"
+              min="0.5"
+              max="2.0"
+              step="0.05"
+              value={kabaddiTimerRate}
+              onChange={(e) => setKabaddiTimerRate(parseFloat(e.target.value))}
+              disabled={loadingTimerRate}
+              style={{
+                flex: 1,
+                height: '6px',
+                borderRadius: '3px',
+                background: 'rgba(59,130,246,0.3)',
+                outline: 'none',
+                cursor: loadingTimerRate ? 'not-allowed' : 'pointer',
+              }}
+            />
+          </div>
+
+          <button
+            onClick={() => handleTimerRateChange(kabaddiTimerRate)}
+            disabled={loadingTimerRate}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+              border: 'none',
+              borderRadius: '0.75rem',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: loadingTimerRate ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              boxShadow: '0 4px 20px rgba(59,130,246,0.4)',
+              transition: 'all 0.3s',
+              opacity: loadingTimerRate ? 0.6 : 1,
+            }}
+            onMouseEnter={(e) => {
+              if (!loadingTimerRate) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 25px rgba(59,130,246,0.5)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loadingTimerRate) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(59,130,246,0.4)';
+              }
+            }}
+          >
+            {loadingTimerRate ? (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline-block', marginRight: '0.5rem', animation: 'spin 1s linear infinite' }}>
+                  <line x1="12" y1="2" x2="12" y2="6"></line>
+                  <line x1="12" y1="18" x2="12" y2="22"></line>
+                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="18" y1="12" x2="22" y2="12"></line>
+                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                </svg>
+                Updating...
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline-block', marginRight: '0.5rem' }}>
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Update Timer Rate
               </>
             )}
           </button>
